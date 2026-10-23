@@ -5,6 +5,15 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Catequese Nossa Senhora do Perpétuo Socorro</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#1F3B66">
+  <link rel="icon" type="image/png" sizes="32x32" href="icones/favicon-32.png">
+  <link rel="apple-touch-icon" href="icones/apple-touch-icon.png">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Catequese">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <link rel="stylesheet" href="css/pwa.css">
   <link rel="stylesheet" href="vendor/bootstrap/bootstrap.min.css">
   <link rel="stylesheet" href="vendor/fontawesome/css/all.min.css">
   <link rel="stylesheet" href="vendor/fontes/fontes.css">
@@ -2805,6 +2814,7 @@ details.cartao-modulo[open] > summary::after { content: "\f077"; }
 
   <script src="vendor/bootstrap/bootstrap.bundle.min.js"></script>
   <script src="vendor/chartjs/chart.umd.js"></script>
+  <script>var VERSAO_APP = '2026.10.23';</script>
   <script src="config.js"></script>
   <script src="js/pwa-inicio.js"></script>
   <script>
@@ -3867,7 +3877,11 @@ document.addEventListener('DOMContentLoaded', function () {
       Sessao.atualizarUsuario(USUARIO);
       irParaOTopo(urlDaPagina('login'), { titulo: 'Volte ao login', mensagem: 'Toque no botão para ir à tela de entrada.', botao: 'Ir para o login' });
     }
-  }).catch(function () {
+  }).catch(function (erro) {
+    // PWA — Etapa 3: o aplicativo instalado abre sem internet. Falta de conexão não é sessão inválida: mantém a
+    // sessão guardada e deixa as telas mostrarem "Sem conexão"; quando a rede volta, a sessão é conferida de novo
+    // (pwa-app.js). Só o aplicativo marca semConexao — no Apps Script o comportamento é o de sempre.
+    if (erro && erro.semConexao) return;
     Sessao.encerrar();
     irParaOTopo(urlDaPagina('login'), { titulo: 'Volte ao login', mensagem: 'Toque no botão para ir à tela de entrada.', botao: 'Ir para o login' });
   });
@@ -7842,5 +7856,6 @@ function iniciarModulo_backup() {
 }
 </script>
 
+  <script src="js/pwa-app.js"></script>
 </body>
 </html>

@@ -23,6 +23,9 @@
     throw new Error('CONFIG_PWA.urlServidor ausente ou inválido.');
   }
 
+  // Versão do site (gerada pelo montador na própria página) — vai em cada chamada ao servidor (campo "v").
+  if (typeof VERSAO_APP !== 'undefined') CONFIG_PWA.versao = VERSAO_APP;
+
   var parametros = new URLSearchParams(window.location.search);
   window.URL_BASE = CONFIG_PWA.urlServidor;
   window.VEIO_DO_LOGIN = parametros.get('s') === '1';
