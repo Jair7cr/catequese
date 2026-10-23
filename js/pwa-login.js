@@ -32,6 +32,12 @@
     try { localStorage.setItem(CHAVE, JSON.stringify(id)); } catch (e) { /* sem armazenamento: segue sem guardar */ }
   }
 
+  // Sem sessão no aparelho (saiu, sessão vencida, ou nunca marcou "Manter conectado"): nenhum dado guardado pode
+  // sobrar (Etapa 4 — ver pwa-dados.js). Garantia extra: Sair já apaga, mas a troca de página pode interromper.
+  if (!Sessao.token() && window.indexedDB) {
+    try { indexedDB.deleteDatabase('catequese-dados'); } catch (e) { /* nada a apagar */ }
+  }
+
   // Sessão guardada e válida no aparelho: abre o sistema direto (o sistema valida no servidor).
   var usuario = Sessao.usuario();
   if (Sessao.token() && usuario && !usuario.trocaSenhaPendente && !SESSAO_EXPIROU && !MANTER_PADRAO) {

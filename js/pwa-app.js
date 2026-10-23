@@ -102,6 +102,16 @@
     };
   }
 
+  // Etapa 4: uma tela recebeu dados guardados no aparelho (pwa-dados.js) — o aviso diz de quando são.
+  document.addEventListener('catequese:dados-salvos', function (evento) {
+    var d = new Date(evento.detail.salvoEm);
+    function dois(n) { return (n < 10 ? '0' : '') + n; }
+    var quando = dois(d.getDate()) + '/' + dois(d.getMonth() + 1) + ', ' + dois(d.getHours()) + ':' + dois(d.getMinutes());
+    if (!semConexao) { semConexao = true; tentativa = 0; agendarPing(); } // servidor lento demais: trata como sem conexão
+    clearTimeout(esconderAviso);
+    mostrarConexao('Sem conexão · dados de ' + quando, false);
+  });
+
   window.addEventListener('offline', marcarSemConexao);
   window.addEventListener('online', function () { if (semConexao) { tentativa = 0; pingar(); } });
   document.addEventListener('visibilitychange', function () { if (!document.hidden && semConexao) pingar(); });

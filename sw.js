@@ -13,7 +13,7 @@
  * config.js (endereço do servidor) é o único arquivo buscado primeiro na rede: ele é editado direto no GitHub e
  * não deve ficar preso numa versão antiga.
  */
-var VERSAO = '2026.10.23-62c8360a75';
+var VERSAO = '2026.10.23-60d3bb4a84';
 var CACHE = 'catequese-' + VERSAO;
 var ARQUIVOS = [
   "./",
@@ -26,6 +26,7 @@ var ARQUIVOS = [
   "icones/icone-maskable-512.png",
   "index.html",
   "js/pwa-app.js",
+  "js/pwa-dados.js",
   "js/pwa-inicio.js",
   "js/pwa-login.js",
   "manifest.webmanifest",
