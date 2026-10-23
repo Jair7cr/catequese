@@ -1,0 +1,876 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <base target="_top">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Catequese Nossa Senhora do Perpétuo Socorro</title>
+  <link rel="stylesheet" href="vendor/bootstrap/bootstrap.min.css">
+  <link rel="stylesheet" href="vendor/fontawesome/css/all.min.css">
+  <link rel="stylesheet" href="vendor/fontes/fontes.css">
+  <style>
+/**
+ * variables.css — Design System "Ícone do Perpétuo Socorro".
+ *
+ * As cores vêm do ícone da padroeira: o manto azul (ação), a túnica bordô (identidade da paróquia)
+ * e o fundo de ouro (fios e detalhes). NENHUMA variável antiga foi removida ou renomeada: só os
+ * valores mudaram e alguns tokens novos foram acrescentados (marcados com "novo").
+ *
+ * COR DA PARÓQUIA (decisão de design): a cor escolhida em Config. da Paróquia passa a valer só para a
+ * IDENTIDADE (faixa do topo, logotipo, Login, Inscrição). Botões, links e foco ficam no azul fixo
+ * (--cor-primaria), o que garante contraste e evita confundir o bordô com "erro". js/core/auth.js
+ * sobrescreve, em tempo de execução, --cor-identidade, --cor-sobre-identidade e --cor-destaque.
+ *
+ * CONTRASTE: todos os pares de texto abaixo passam de 4,5:1 (WCAG AA); bordas de campo passam de 3:1.
+ */
+:root {
+  /* Ação — azul mariano (fixo) */
+  --cor-primaria: #1F3B66;
+  --cor-primaria-rgb: 31, 59, 102;
+  --cor-primaria-dark: #172D4F;
+  --cor-primaria-light: #E8EEF6;
+  --cor-primaria-texto: #1F3B66;
+  --cor-sobre-primaria: #ffffff;
+  --cor-sobre-primaria-hover: #ffffff;
+
+  /* Identidade da paróquia — bordô (configurável em Config. da Paróquia) — novo */
+  --cor-identidade: #7B1E3A;
+  --cor-sobre-identidade: #ffffff;
+  --cor-sobre-identidade-suave: rgba(255, 255, 255, 0.82);
+  --cor-secundaria: var(--cor-identidade); /* nome antigo, mantido */
+
+  /* Ouro — só fios, marcadores e ornamentos; nunca texto pequeno — novo */
+  --cor-destaque: #B8913F;
+  --cor-destaque-texto: #7A5B1E;
+
+  /* Semânticas (texto escuro sobre fundo suave: todas acima de 5:1) */
+  --cor-sucesso: #1E7A4C;
+  --cor-sucesso-texto: #1E6B43;
+  --cor-sucesso-light: #E4F3EA;
+  --cor-aviso: #D99A1E;
+  --cor-aviso-escuro: #8A5100;
+  --cor-aviso-light: #FDF2DC;
+  --cor-erro: #B42318;
+  --cor-erro-texto: #9B1C14;
+  --cor-erro-light: #FDECEA;
+  --cor-info: #245A8E;
+  --cor-info-light: #E7F0FA;
+
+  /* Neutros quentes (marfim e pergaminho) */
+  --gray-50: #F7F4EE;
+  --gray-100: #EFEAE0;
+  --gray-200: #E2DCD0;
+  --gray-300: #C9C1B2;
+  --gray-400: #8E877A;
+  --gray-500: #5A6170;
+  --gray-600: #4A5060;
+  --gray-700: #363C48;
+  --gray-800: #262B35;
+  --gray-900: #1E2430;
+  --white: #ffffff;
+
+  /* Aliases semânticos */
+  --cor-fundo: #F7F4EE;
+  --cor-fundo-alt: #EFEAE0;          /* novo: barra de filtros, cabeçalho de tabela */
+  --cor-superficie: #ffffff;
+  --cor-superficie-alt: #FBF9F5;     /* novo: rodapé de modal, linhas alternadas */
+  --cor-texto: #1E2430;
+  --cor-texto-suave: #5A6170;
+  --cor-texto-apoio: #686E7B;        /* novo: placeholder, rodapés */
+  --cor-borda: #E2DCD0;
+  --cor-divisoria: #EEE9DF;          /* novo */
+  --cor-borda-campo: #8E877A;        /* novo: contorno de campos (3,6:1) */
+
+  /* Menu lateral — azul-noite */
+  --cor-sidebar: #16294A;
+  --cor-sidebar-fim: #0F1E37;
+  --cor-sidebar-hover: rgba(255, 255, 255, 0.07);
+  --cor-sidebar-ativo: rgba(255, 255, 255, 0.11);
+  --cor-sidebar-texto: #C7D0DE;
+  --cor-sidebar-rotulo: #9FB0C8;
+  --cor-sidebar-texto-ativo: #ffffff;
+
+  /* Gráficos (o Dashboard lê --icone-azul e --icone-verde) */
+  --icone-azul: #1F3B66;
+  --icone-verde: #7B1E3A;   /* segunda série: bordô (nome antigo mantido) */
+  --icone-roxo: #1F3B66;
+  --icone-teal: #1F3B66;
+
+  /* Acentos dos cartões de indicador: neutros; só o estado "atenção" tem cor própria */
+  --acento-azul: var(--cor-primaria);
+  --tinta-azul: var(--cor-primaria-light);
+  --acento-verde: var(--cor-primaria);
+  --tinta-verde: var(--cor-primaria-light);
+  --acento-ambar: var(--cor-aviso-escuro);
+  --tinta-ambar: var(--cor-aviso-light);
+  --acento-roxo: var(--cor-primaria);
+  --tinta-roxo: var(--cor-primaria-light);
+  --acento-teal: var(--cor-primaria);
+  --tinta-teal: var(--cor-primaria-light);
+
+  /* Forma, sombra, transição */
+  --raio-sm: 6px;
+  --raio-padrao: 10px;
+  --raio-lg: 14px;
+  --sombra-sm: 0 1px 2px rgba(22, 41, 74, 0.06);
+  --sombra-padrao: 0 4px 14px rgba(22, 41, 74, 0.07);
+  --sombra-hover: 0 8px 22px rgba(22, 41, 74, 0.12);
+  --sombra-lg: 0 12px 32px rgba(22, 41, 74, 0.16);
+  --transicao: all 0.18s ease;
+  --anel-foco: 0 0 0 3px rgba(31, 59, 102, 0.35);   /* novo */
+
+  /* Escala de espaçamento (base 4px) */
+  --esp-1: 4px;
+  --esp-2: 8px;
+  --esp-3: 12px;
+  --esp-4: 16px;
+  --esp-5: 24px;
+  --esp-6: 32px;
+  --esp-7: 48px;
+
+  /* Tipografia: serifa só nos títulos de página; Inter em todo o resto */
+  --fonte-titulo: 'Source Serif 4', Georgia, 'Times New Roman', serif;   /* novo */
+  --fonte-display: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --fonte-corpo: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+
+  /* Alvos de toque */
+  --alvo-toque: 44px;   /* novo */
+}
+</style>
+
+  <style>
+/**
+ * layout.css — base COMPARTILHADA pelas 3 páginas (Login, App e Inscrição pública).
+ *
+ * Aqui ficam os componentes que as três usam (botões, campos e a moldura de identidade) numa fonte única.
+ * Redesenho "Ícone do Perpétuo Socorro": nenhuma classe usada pelo JavaScript foi renomeada ou removida.
+ */
+* { box-sizing: border-box; }
+
+body {
+  background: var(--cor-fundo);
+  color: var(--cor-texto);
+  font-family: var(--fonte-corpo);
+  font-size: 0.9375rem;
+  line-height: 1.55;
+  margin: 0;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Foco visível e consistente — só aparece para quem navega pelo teclado. */
+:focus-visible {
+  outline: 3px solid rgba(31, 59, 102, 0.45);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* Quem pede menos movimento no sistema operacional não recebe animações. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+}
+
+/* ---------- Moldura de identidade (Login e Inscrição) ---------- */
+
+.tela-login {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+}
+
+.cartao-login {
+  background: var(--cor-superficie);
+  border-radius: var(--raio-lg);
+  box-shadow: var(--sombra-lg);
+  border: 1px solid var(--cor-borda);
+  width: 100%;
+  max-width: 420px;
+  overflow: hidden;
+}
+
+/* Faixa bordô com fio dourado: a "túnica" e o "ouro" do ícone da padroeira. */
+.faixa-identidade {
+  position: relative;
+  background: var(--cor-identidade);
+  color: var(--cor-sobre-identidade);
+  border-bottom: 3px solid var(--cor-destaque);
+  padding: 36px 32px 30px;
+  text-align: center;
+  overflow: hidden;
+}
+.faixa-identidade .estrela-fundo {
+  position: absolute;
+  right: -18px;
+  top: -10px;
+  width: 132px;
+  height: 132px;
+  opacity: 0.09;
+  pointer-events: none;
+}
+.faixa-identidade h1, .faixa-identidade .titulo-faixa {
+  font-family: var(--fonte-titulo);
+  font-weight: 600;
+  font-size: 1.875rem;
+  line-height: 1.2;
+  margin: 0;
+  color: inherit;
+  letter-spacing: 0;
+}
+.faixa-identidade .nome-paroquia {
+  margin: 6px 0 0;
+  font-size: 0.875rem;
+  line-height: 1.4;
+  color: var(--cor-sobre-identidade-suave);
+}
+
+.marca-icone {
+  width: 60px;
+  height: 60px;
+  border-radius: 14px;
+  background: #ffffff;
+  box-shadow: 0 0 0 2px var(--cor-destaque);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 16px;
+}
+.marca-icone i { color: var(--cor-identidade); font-size: 1.5rem; }
+
+.corpo-login { padding: 28px 32px 24px; }
+.acolhida-login { text-align: center; color: var(--cor-texto-suave); margin: 0 0 20px; }
+
+.cartao-login .btn-primario { width: 100%; min-height: 48px; font-size: 1rem; }
+
+.mensagem-erro {
+  color: var(--cor-erro);
+  font-size: 0.875rem;
+  font-weight: 500;
+  margin-top: 12px;
+  display: none;
+}
+
+footer.rodape-sistema {
+  text-align: center;
+  font-size: 0.75rem;
+  color: var(--cor-texto-apoio);
+  margin-top: 20px;
+}
+
+/* ---------- Links ---------- */
+
+a { color: var(--cor-primaria); text-decoration: none; }
+a:hover { color: var(--cor-primaria-dark); text-decoration: underline; }
+
+/* ---------- Botões (hierarquia: primário, secundário, perigo; 40 px, 44 px no celular) ---------- */
+
+.btn {
+  border-radius: var(--raio-padrao);
+  font-weight: 600;
+  font-size: 0.9375rem;
+  line-height: 1.25;
+  padding: 0.5rem 1rem;
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: var(--transicao);
+}
+.btn-sm { min-height: 36px; padding: 0.35rem 0.8rem; font-size: 0.875rem; border-radius: 8px; }
+.btn:focus-visible { box-shadow: var(--anel-foco); outline: none; }
+.btn:disabled, .btn.disabled { opacity: 0.5; cursor: not-allowed; }
+.btn:active:not(:disabled) { transform: translateY(1px); }
+
+/* Primário: azul mariano. */
+.btn-primario, .btn-primary {
+  background: var(--cor-primaria);
+  border: 1px solid var(--cor-primaria);
+  color: #fff;
+}
+.btn-primario:hover, .btn-primary:hover, .btn-primario:focus, .btn-primary:focus {
+  background: var(--cor-primaria-dark);
+  border-color: var(--cor-primaria-dark);
+  color: #fff;
+}
+
+/* Secundário: branco com contorno. As variantes "info" e "dark" (Biblioteca, Galeria) viram secundário:
+   a cor de estado fica reservada para estado. */
+.btn-secondary, .btn-outline-secondary, .btn-outline-info, .btn-outline-dark {
+  background: #fff;
+  border: 1px solid var(--cor-borda-campo);
+  color: var(--cor-texto);
+}
+.btn-secondary:hover, .btn-outline-secondary:hover, .btn-outline-info:hover, .btn-outline-dark:hover,
+.btn-outline-secondary:focus, .btn-outline-info:focus, .btn-outline-dark:focus {
+  background: var(--cor-fundo);
+  border-color: var(--gray-700);
+  color: var(--cor-texto);
+}
+
+.btn-outline-primary { color: var(--cor-primaria); border: 1px solid var(--cor-primaria); background: #fff; }
+.btn-outline-primary:hover, .btn-outline-primary:focus { background: var(--cor-primaria-light); border-color: var(--cor-primaria); color: var(--cor-primaria-dark); }
+
+/* Perigo: contorno vermelho; sólido só dentro da confirmação. */
+.btn-danger { background: var(--cor-erro); border: 1px solid var(--cor-erro); color: #fff; }
+.btn-danger:hover, .btn-danger:focus { background: var(--cor-erro-texto); border-color: var(--cor-erro-texto); color: #fff; }
+.btn-outline-danger { background: #fff; border: 1px solid var(--cor-erro); color: var(--cor-erro); }
+.btn-outline-danger:hover, .btn-outline-danger:focus { background: var(--cor-erro-light); border-color: var(--cor-erro); color: var(--cor-erro-texto); }
+
+/* Sucesso: só para ações que confirmam algo (ex.: "Abrir WhatsApp"). */
+.btn-success { background: var(--cor-sucesso); border: 1px solid var(--cor-sucesso); color: #fff; }
+.btn-success:hover, .btn-success:focus { background: var(--cor-sucesso-texto); border-color: var(--cor-sucesso-texto); color: #fff; }
+.btn-outline-success { background: #fff; border: 1px solid var(--cor-borda-campo); color: var(--cor-texto); }
+.btn-outline-success:hover, .btn-outline-success:focus { background: var(--cor-fundo); border-color: var(--gray-700); color: var(--cor-texto); }
+
+.btn-outline-warning { color: var(--cor-aviso-escuro); border: 1px solid var(--cor-aviso-escuro); background: #fff; }
+.btn-outline-warning:hover, .btn-outline-warning:focus { background: var(--cor-aviso-light); color: var(--cor-aviso-escuro); border-color: var(--cor-aviso-escuro); }
+
+.btn-link { font-weight: 600; color: var(--cor-primaria); }
+.btn-link:hover { color: var(--cor-primaria-dark); }
+
+/* ---------- Formulários ---------- */
+
+.form-label { font-size: 0.875rem; font-weight: 600; color: var(--cor-texto); margin-bottom: 6px; }
+
+.form-control, .form-select {
+  min-height: 44px;
+  border-radius: var(--raio-sm);
+  border: 1px solid var(--cor-borda-campo);
+  padding: 0.55rem 0.85rem;
+  font-family: var(--fonte-corpo);
+  font-size: 0.9375rem;
+  color: var(--cor-texto);
+  background-color: #fff;
+  transition: var(--transicao);
+}
+.form-control-sm, .form-select-sm { min-height: 38px; font-size: 0.875rem; padding: 0.35rem 0.7rem; }
+.form-control:hover, .form-select:hover { border-color: var(--gray-700); }
+.form-control:focus, .form-select:focus {
+  border-color: var(--cor-primaria);
+  box-shadow: var(--anel-foco);
+}
+.form-control:disabled, .form-select:disabled, .form-control[readonly] { background-color: var(--cor-fundo); color: var(--cor-texto-suave); }
+.form-control::placeholder { color: var(--cor-texto-apoio); }
+textarea.form-control { min-height: 88px; }
+.form-control-color { min-width: 64px; padding: 6px; }
+
+.form-check-input { width: 1.2em; height: 1.2em; border: 1px solid var(--cor-borda-campo); }
+.form-check-input:checked { background-color: var(--cor-primaria); border-color: var(--cor-primaria); }
+.form-check-input:focus { box-shadow: var(--anel-foco); border-color: var(--cor-primaria); }
+.form-check-label { cursor: pointer; }
+.form-text { font-size: 0.8125rem; color: var(--cor-texto-suave); }
+.text-muted { color: var(--cor-texto-suave) !important; }
+.text-danger { color: var(--cor-erro) !important; }
+.text-success { color: var(--cor-sucesso) !important; }
+
+/* Telas pequenas: campos com 16px evitam o zoom automático do iOS; alvos de toque com 44 px. */
+@media (max-width: 767.98px) {
+  .form-control, .form-select { font-size: 1rem; }
+  .btn { min-height: var(--alvo-toque); }
+  .btn-sm { min-height: 40px; }
+  .faixa-identidade { padding: 32px 24px 26px; }
+  .corpo-login { padding: 24px 20px 20px; }
+}
+</style>
+
+</head>
+<body data-cor-identidade="" data-cor-destaque="" data-cor-sobre-identidade="" data-cor-sobre-identidade-suave="">
+  <!-- Cores da paróquia (Config. da Paróquia), validadas em Router.gs. Vão em atributos (escape de HTML simples)
+       e viram variáveis CSS aqui — evita o escape de CSS do template, que poderia alterar valores como rgba(...). -->
+  <script>
+    (function (corpo) {
+      ['cor-identidade', 'cor-destaque', 'cor-sobre-identidade', 'cor-sobre-identidade-suave'].forEach(function (chave) {
+        var valor = corpo.getAttribute('data-' + chave);
+        if (valor) document.documentElement.style.setProperty('--' + chave, valor);
+      });
+    })(document.body);
+  </script>
+  <main class="tela-login">
+    <div class="cartao-login">
+      <div class="faixa-identidade">
+        <svg class="estrela-fundo" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="0.7" aria-hidden="true"><path d="M12 1.5l2.6 6.2 6.4-1.6-3.9 5.4 3.9 5.4-6.4-1.6L12 21.5l-2.6-6.2-6.4 1.6 3.9-5.4L3 6.1l6.4 1.6z"/></svg>
+        <div class="marca-icone"><i class="fa-solid fa-cross" aria-hidden="true"></i></div>
+        <h1>Catequese</h1>
+        <p class="nome-paroquia">Paróquia Nossa Senhora do Perpétuo Socorro</p>
+      </div>
+
+      <div class="corpo-login">
+      <p class="acolhida-login">Bem-vindo(a) à caminhada da fé.</p>
+      <form id="form-login">
+        <div class="mb-3 text-start">
+          <label for="cpf" class="form-label">CPF</label>
+          <input type="text" class="form-control" id="cpf" required autocomplete="username"
+                 inputmode="numeric" maxlength="14" placeholder="000.000.000-00">
+        </div>
+        <div class="mb-3 text-start">
+          <label for="senha" class="form-label">Senha</label>
+          <input type="password" class="form-control" id="senha" required autocomplete="current-password">
+        </div>
+        <div class="form-check mb-3 text-start">
+          <input class="form-check-input" type="checkbox" id="manter-conectado">
+          <label class="form-check-label" for="manter-conectado">Manter conectado neste aparelho</label>
+          <div class="form-text">Use só em aparelho seu. Desmarcado, você sai ao fechar a aba.</div>
+        </div>
+        <button type="submit" id="btn-entrar" class="btn btn-primario">Entrar</button>
+        <div id="mensagem-erro" class="mensagem-erro" role="alert"></div>
+      </form>
+
+      <!-- Troca OBRIGATÓRIA de senha: aparece quando a conta está com senha
+           provisória (criada pelo sistema ou redefinida por um administrador).
+           Enquanto isso não for feito, a API só aceita a troca. -->
+      <form id="form-troca-senha" style="display: none;" novalidate>
+        <h2 class="h5 mb-2">Defina uma nova senha</h2>
+        <p class="text-muted small mb-3">Sua senha é provisória. Escolha uma senha só sua para continuar: mínimo de 8 caracteres, com letras e números.</p>
+        <div class="mb-3 text-start">
+          <label for="senha-atual" class="form-label">Senha provisória (a que você acabou de usar)</label>
+          <input type="password" class="form-control" id="senha-atual" autocomplete="current-password">
+        </div>
+        <div class="mb-3 text-start">
+          <label for="senha-nova" class="form-label">Nova senha</label>
+          <input type="password" class="form-control" id="senha-nova" autocomplete="new-password">
+        </div>
+        <div class="mb-3 text-start">
+          <label for="senha-nova-confirmacao" class="form-label">Repita a nova senha</label>
+          <input type="password" class="form-control" id="senha-nova-confirmacao" autocomplete="new-password">
+        </div>
+        <button type="submit" id="btn-trocar-senha" class="btn btn-primario">Salvar nova senha</button>
+        <button type="button" id="btn-trocar-sair" class="btn btn-link btn-sm mt-2 w-100">Sair</button>
+        <div id="mensagem-erro-troca" class="mensagem-erro" role="alert"></div>
+      </form>
+
+      <footer class="rodape-sistema">
+        Catequese NSPS &middot; v1.0
+      </footer>
+      </div>
+    </div>
+  </main>
+
+  <script src="vendor/bootstrap/bootstrap.bundle.min.js"></script>
+  <script src="config.js"></script>
+  <script src="js/pwa-inicio.js"></script>
+  <script>
+/**
+ * js/core/armazenamento.js
+ * ONDE a sessão (token + dados do usuário) fica guardada no navegador — auditoria M2.
+ *
+ * Antes, o token ficava SEMPRE em localStorage: sobrevivia ao fechar o navegador e ficava
+ * ali, legível por qualquer script da página, num computador compartilhado. Agora:
+ *   - padrão: sessionStorage — a sessão vale só para esta ABA e acaba ao fechá-la;
+ *   - "Manter conectado neste aparelho" (marcado no login): localStorage, como antes.
+ * Leitura: procura primeiro na aba e depois no aparelho — assim quem já estava logado
+ * antes desta versão (token em localStorage) continua logado até a sessão expirar.
+ *
+ * LIMITE HONESTO: isto encurta quanto tempo o token fica exposto, mas NÃO impede que um
+ * script injetado (XSS) o leia enquanto a aba está aberta. A defesa contra XSS é o
+ * escapeHtml/linkSeguro (ver o lint em tests) — não o armazenamento.
+ */
+var Sessao = (function () {
+  var CHAVE_TOKEN = 'catequese_token';
+  var CHAVE_USUARIO = 'catequese_usuario';
+
+  /** Devolve o armazenamento só se ele FUNCIONA (navegação privada/bloqueio de cookies podem lançar erro). */
+  function _armazem(tipo) {
+    try {
+      var armazem = window[tipo];
+      armazem.setItem('__teste', '1');
+      armazem.removeItem('__teste');
+      return armazem;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function _daAba() { return _armazem('sessionStorage'); }
+  function _doAparelho() { return _armazem('localStorage'); }
+
+  function _ler(chave) {
+    var aba = _daAba();
+    var valor = aba ? aba.getItem(chave) : null;
+    if (valor === null) {
+      var aparelho = _doAparelho();
+      valor = aparelho ? aparelho.getItem(chave) : null;
+    }
+    return valor;
+  }
+
+  /** O armazém onde a sessão atual está de fato (para atualizar o usuário no MESMO lugar). */
+  function _ondeEsta() {
+    var aba = _daAba();
+    if (aba && aba.getItem(CHAVE_TOKEN) !== null) return aba;
+    return _doAparelho();
+  }
+
+  function token() { return _ler(CHAVE_TOKEN); }
+
+  function usuario() {
+    try { return JSON.parse(_ler(CHAVE_USUARIO) || 'null'); } catch (e) { return null; }
+  }
+
+  /** true se a sessão está guardada no APARELHO (sobrevive ao fechar o navegador). */
+  function mantida() {
+    var aparelho = _doAparelho();
+    return !!(aparelho && aparelho.getItem(CHAVE_TOKEN) !== null);
+  }
+
+  function encerrar() {
+    [_daAba(), _doAparelho()].forEach(function (armazem) {
+      if (!armazem) return;
+      armazem.removeItem(CHAVE_TOKEN);
+      armazem.removeItem(CHAVE_USUARIO);
+    });
+  }
+
+  function iniciar(tokenNovo, usuarioNovo, manter) {
+    encerrar(); // nunca sobra uma sessão antiga no OUTRO armazém
+    var alvo = manter ? _doAparelho() : (_daAba() || _doAparelho());
+    if (!alvo) throw new Error('Seu navegador bloqueou o armazenamento local — não é possível manter a sessão.');
+    alvo.setItem(CHAVE_TOKEN, tokenNovo);
+    alvo.setItem(CHAVE_USUARIO, JSON.stringify(usuarioNovo));
+  }
+
+  function atualizarUsuario(usuarioAtual) {
+    var alvo = _ondeEsta();
+    if (alvo) alvo.setItem(CHAVE_USUARIO, JSON.stringify(usuarioAtual));
+  }
+
+  return { token: token, usuario: usuario, mantida: mantida, iniciar: iniciar, atualizarUsuario: atualizarUsuario, encerrar: encerrar };
+})();
+</script>
+
+  <script>
+/**
+ * js/core/api.js
+ * Wrapper único sobre google.script.run. Nenhuma tela chama
+ * google.script.run diretamente — todas passam por aqui.
+ * Padroniza o tratamento de sucesso/erro e envolve a callback
+ * em uma Promise para facilitar async/await nas telas.
+ *
+ * Movido de js/api.js para js/core/api.js na Etapa 12 — mesmo
+ * conteúdo, sem nenhuma alteração de comportamento.
+ */
+
+// ---------- Aviso de lentidão ----------
+// O Google às vezes demora. Sem aviso, a pessoa acha que travou e clica de novo (e uma gravação pode sair em dobro).
+// Depois de alguns segundos sem resposta, aparece um aviso discreto pedindo para aguardar; ele some sozinho quando
+// a resposta chega. A chamada NUNCA é cancelada nem repetida por aqui: o servidor pode já estar gravando.
+// (var, não const: os testes automáticos encurtam os prazos.)
+var AVISO_LENTO_MS = 10000;
+var AVISO_MUITO_LENTO_MS = 40000;
+var _chamadasLentas = 0;    // quantas chamadas já passaram do primeiro prazo e ainda esperam resposta
+var _chamadasMuitoLentas = 0;
+
+function _atualizarAvisoDeLentidao() {
+  var aviso = document.getElementById('aviso-lentidao-servidor');
+  if (_chamadasLentas <= 0) {
+    if (aviso) aviso.remove();
+    return;
+  }
+  if (!aviso) {
+    var envoltorio = document.createElement('div');
+    envoltorio.innerHTML = '<div id="aviso-lentidao-servidor" class="alert alert-warning shadow-sm mb-0" role="status" aria-live="polite" ' +
+      'style="position:fixed;left:16px;right:16px;bottom:16px;max-width:520px;margin:0 auto;z-index:2000;font-size:0.875rem;"></div>';
+    aviso = envoltorio.firstChild;
+    document.body.appendChild(aviso);
+  }
+  aviso.textContent = _chamadasMuitoLentas > 0
+    ? 'Está demorando mais que o normal. Se não terminar logo, recarregue a página e confira se o que você fez foi salvo.'
+    : 'O servidor está demorando para responder. Aguarde e evite clicar de novo.';
+}
+
+/** Liga os dois prazos de uma chamada; devolve a função que a encerra (chamar quando a resposta chegar). */
+function _vigiarLentidao() {
+  var lenta = false, muitoLenta = false;
+  var t1 = setTimeout(function () { lenta = true; _chamadasLentas++; _atualizarAvisoDeLentidao(); }, AVISO_LENTO_MS);
+  var t2 = setTimeout(function () { muitoLenta = true; _chamadasMuitoLentas++; _atualizarAvisoDeLentidao(); }, AVISO_MUITO_LENTO_MS);
+  return function () {
+    clearTimeout(t1);
+    clearTimeout(t2);
+    if (lenta) _chamadasLentas--;
+    if (muitoLenta) _chamadasMuitoLentas--;
+    if (lenta || muitoLenta) _atualizarAvisoDeLentidao();
+  };
+}
+
+// ---------- Dois modos de rodar (PWA — Etapa 2) ----------
+// No Apps Script (como sempre): as páginas vêm do doGet e as chamadas vão por google.script.run.
+// No aplicativo instalável (site próprio, GitHub Pages): não existe google.script.run; o arquivo config.js do site
+// define CONFIG_PWA (endereço do servidor e versão) e as chamadas vão por fetch para o doPost (core/ApiHttp.gs).
+// A resposta é o MESMO envelope { success, message, data } nos dois modos, então nenhuma tela percebe a diferença.
+function _modoAplicativo() {
+  return typeof CONFIG_PWA !== 'undefined' && !!CONFIG_PWA.urlServidor;
+}
+
+/**
+ * Endereço de uma das páginas do sistema ('login' ou 'app'), com parâmetros opcionais ({ s: '1' }, { expirou: '1' }...).
+ * No Apps Script: URL ABSOLUTA do web app (ver obterUrlBase() em Code.gs), exatamente como antes —
+ *   urlDaPagina('app', { s: '1' }) === URL_BASE + '?page=app&s=1'.
+ * No aplicativo: o arquivo da página no próprio site (index.html = login, app.html = sistema).
+ */
+function urlDaPagina(pagina, parametros) {
+  var partes = [];
+  Object.keys(parametros || {}).forEach(function (chave) {
+    partes.push(encodeURIComponent(chave) + '=' + encodeURIComponent(parametros[chave]));
+  });
+  if (_modoAplicativo()) {
+    return (pagina === 'app' ? 'app.html' : 'index.html') + (partes.length ? '?' + partes.join('&') : '');
+  }
+  return URL_BASE + '?' + ['page=' + pagina].concat(partes).join('&');
+}
+
+/** Envia pelo doPost (modo aplicativo). Mesmo contrato de google.script.run: sucesso(resposta) ou falha(erro). */
+function _chamarPorFetch(nomeFuncao, argumentos, sucesso, falha) {
+  fetch(CONFIG_PWA.urlServidor, {
+    method: 'POST',
+    // text/plain = requisição "simples": o navegador não faz a verificação prévia (OPTIONS), que o Apps Script não atende.
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify({ op: nomeFuncao, args: argumentos, v: CONFIG_PWA.versao || '' }),
+    credentials: 'omit',
+    redirect: 'follow'
+  }).then(function (resposta) {
+    if (!resposta.ok) throw { semResposta: false, mensagem: 'O servidor respondeu com erro (' + resposta.status + '). Tente de novo em instantes.' };
+    return resposta.text().then(function (texto) {
+      try { return JSON.parse(texto); }
+      catch (e) { throw { semResposta: false, mensagem: 'O servidor respondeu de forma inesperada. Tente de novo em instantes.' }; }
+    });
+  }).then(sucesso, function (erro) {
+    // Falha de rede (sem internet, servidor fora do ar): o fetch rejeita com TypeError, sem resposta nenhuma.
+    falha(erro && erro.mensagem ? erro : { semResposta: true, mensagem: 'Sem conexão com o servidor. Verifique a internet e tente de novo.' });
+  });
+}
+
+function chamarApi(nomeFuncao) {
+  var argumentos = Array.prototype.slice.call(arguments, 1);
+
+  return new Promise(function (resolve, reject) {
+    var encerrarVigia = _vigiarLentidao();
+    function aoResponder(resposta) {
+      encerrarVigia();
+      if (!resposta) {
+        reject(new Error('Não foi possível se comunicar com o servidor.'));
+        return;
+      }
+      if (!resposta.success) {
+        // Sessão vencida no meio do uso: só o app define aoSessaoExpirar (ver js/core/auth.js) — no login
+        // e na inscrição pública esta função não existe e nada muda.
+        if (typeof aoSessaoExpirar === 'function' && /^Sessão (inválida|expirada)/.test(resposta.message || '')) aoSessaoExpirar();
+        reject(new Error(resposta.message || 'Operação não realizada.'));
+        return;
+      }
+      resolve(resposta.data);
+    }
+
+    if (_modoAplicativo()) {
+      _chamarPorFetch(nomeFuncao, argumentos, aoResponder, function (erro) {
+        encerrarVigia();
+        var falha = new Error(erro.mensagem);
+        falha.semConexao = !!erro.semResposta; // para as próximas etapas (modo sem conexão)
+        reject(falha);
+      });
+      return;
+    }
+
+    google.script.run
+      .withSuccessHandler(aoResponder)
+      .withFailureHandler(function (erro) {
+        encerrarVigia();
+        reject(new Error('Erro inesperado: ' + (erro && erro.message ? erro.message : erro)));
+      })
+      [nomeFuncao].apply(null, argumentos);
+  });
+}
+/**
+ * Troca a página INTEIRA (top) para `url`. O navegador só permite isso, a partir do iframe do Apps Script, logo
+ * depois de um clique do usuário (~5 s). Se o servidor demorou mais que isso — ou a navegação é bloqueada por
+ * outro motivo — o redirecionamento falha ("The current window does not have permission to navigate the target
+ * frame"). Neste caso mostra um botão: o clique nele é um gesto novo e a navegação passa.
+ * `texto`: { titulo, mensagem, botao }.
+ */
+function irParaOTopo(url, texto) {
+  var mostrado = false;
+  function mostrarBotao() {
+    if (mostrado) return;
+    mostrado = true;
+    var envoltorio = document.createElement('div');
+    envoltorio.innerHTML = '<div id="aviso-continuar" role="alertdialog" aria-labelledby="aviso-continuar-titulo" ' +
+      'style="position:fixed;inset:0;z-index:3000;display:flex;align-items:center;justify-content:center;padding:16px;background:#f7fafd;">' +
+      '<div class="text-center" style="max-width:420px;">' +
+      '<h5 id="aviso-continuar-titulo" class="mb-2"></h5><p class="text-muted mb-3"></p>' +
+      '<a class="btn btn-primario" target="_top" id="aviso-continuar-botao"></a></div></div>';
+    var caixa = envoltorio.firstChild;
+    caixa.querySelector('h5').textContent = (texto && texto.titulo) || 'Tudo certo';
+    caixa.querySelector('p').textContent = (texto && texto.mensagem) || 'Toque no botão para continuar.';
+    var botao = caixa.querySelector('a');
+    botao.textContent = (texto && texto.botao) || 'Continuar';
+    botao.setAttribute('href', url);
+    document.body.appendChild(caixa);
+  }
+  try {
+    top.location.href = url;
+  } catch (erro) {
+    mostrarBotao();
+    return;
+  }
+  // Se a navegação foi bloqueada sem erro, a página continua aqui depois de alguns segundos; se deu certo, ela já foi descarregada.
+  setTimeout(mostrarBotao, 4000);
+}
+</script>
+
+  <script>
+/**
+ * js/login.js
+ * Regras da tela de login. Nenhuma regra de negócio real aqui —
+ * apenas captura de dados, chamada à API e atualização da tela.
+ */
+
+document.addEventListener('DOMContentLoaded', function () {
+  var formulario = document.getElementById('form-login');
+  var mensagemErro = document.getElementById('mensagem-erro');
+  var botao = document.getElementById('btn-entrar');
+  var campoCpf = document.getElementById('cpf');
+
+  campoCpf.addEventListener('input', function () {
+    campoCpf.value = _formatarCpf(campoCpf.value);
+  });
+
+  formulario.addEventListener('submit', function (evento) {
+    evento.preventDefault();
+    mensagemErro.style.display = 'none';
+
+    var cpf = campoCpf.value.replace(/\D/g, '');
+    var senha = document.getElementById('senha').value;
+
+    if (!cpf || !senha) {
+      exibirErro('Preencha CPF e senha.');
+      return;
+    }
+
+    botao.disabled = true;
+    botao.textContent = 'Entrando...';
+
+    chamarApi('apiLogin', cpf, senha)
+      .then(function (dados) {
+        Sessao.iniciar(dados.token, dados.usuario, document.getElementById('manter-conectado').checked);
+        if (dados.usuario.trocaSenhaPendente) {
+          // Senha provisória: antes de qualquer coisa, o usuário define a sua.
+          mostrarTrocaDeSenha(senha);
+          return;
+        }
+        irParaOApp();
+      })
+      .catch(function (erro) {
+        exibirErro(erro.message);
+      })
+      .finally(function () {
+        botao.disabled = false;
+        botao.textContent = 'Entrar';
+      });
+  });
+
+  function exibirErro(texto) {
+    mensagemErro.textContent = texto;
+    mensagemErro.style.display = 'block';
+  }
+
+  // URL ABSOLUTA (ver obterUrlBase() em Code.gs) — uma relativa seria
+  // resolvida contra o iframe interno do HtmlService, não contra a URL
+  // real do web app, e daria tela em branco.
+  function irParaOApp() {
+    // s=1: a sessão está só nesta aba — se o navegador não a levar até o app, o app avisa em vez de girar em laço.
+    irParaOTopo(urlDaPagina('app', Sessao.mantida() ? {} : { s: '1' }),
+      { titulo: 'Login concluído', mensagem: 'Toque no botão para abrir o sistema.', botao: 'Abrir o sistema' });
+  }
+
+  // ---------- Troca obrigatória de senha ----------
+  var formularioTroca = document.getElementById('form-troca-senha');
+  var mensagemErroTroca = document.getElementById('mensagem-erro-troca');
+  var botaoTroca = document.getElementById('btn-trocar-senha');
+
+  function mostrarTrocaDeSenha(senhaProvisoria) {
+    formulario.style.display = 'none';
+    formularioTroca.style.display = 'block';
+    mensagemErroTroca.style.display = 'none';
+    document.getElementById('senha-atual').value = senhaProvisoria || '';
+    document.getElementById(senhaProvisoria ? 'senha-nova' : 'senha-atual').focus();
+  }
+
+  function voltarParaOLogin(mensagem) {
+    Sessao.encerrar();
+    formularioTroca.style.display = 'none';
+    formulario.style.display = 'block';
+    document.getElementById('senha').value = '';
+    if (mensagem) exibirErro(mensagem);
+  }
+
+  function exibirErroTroca(texto) {
+    mensagemErroTroca.textContent = texto;
+    mensagemErroTroca.style.display = 'block';
+  }
+
+  formularioTroca.addEventListener('submit', function (evento) {
+    evento.preventDefault();
+    if (botaoTroca.disabled) return; // já há um envio em andamento (Enter, duplo clique)
+    mensagemErroTroca.style.display = 'none';
+
+    var atual = document.getElementById('senha-atual').value;
+    var nova = document.getElementById('senha-nova').value;
+    var confirmacao = document.getElementById('senha-nova-confirmacao').value;
+
+    // Conferências só para avisar rápido — o servidor repete todas e é quem decide.
+    if (!atual) { exibirErroTroca('Informe a senha provisória.'); return; }
+    if (nova !== confirmacao) { exibirErroTroca('A confirmação não é igual à nova senha.'); return; }
+    if (nova.length < 8) { exibirErroTroca('A nova senha deve ter ao menos 8 caracteres.'); return; }
+
+    botaoTroca.disabled = true;
+    botaoTroca.textContent = 'Salvando...';
+    chamarApi('apiAlterarMinhaSenha', Sessao.token(), atual, nova)
+      .then(function () {
+        var usuario = Sessao.usuario() || {};
+        usuario.trocaSenhaPendente = false;
+        Sessao.atualizarUsuario(usuario);
+        irParaOApp();
+      })
+      .catch(function (erro) {
+        if (/Sessão inválida/.test(erro.message)) {
+          voltarParaOLogin('Sua sessão expirou. Entre novamente.');
+          return;
+        }
+        exibirErroTroca(erro.message);
+      })
+      .finally(function () {
+        botaoTroca.disabled = false;
+        botaoTroca.textContent = 'Salvar nova senha';
+      });
+  });
+
+  // O app voltou ao login porque a sessão expirou: avisa (a sessão antiga já foi limpa pelo app).
+  if (typeof SESSAO_EXPIROU !== 'undefined' && SESSAO_EXPIROU) exibirErro('Sua sessão expirou. Entre novamente.');
+
+  // Voltou do app porque o navegador não guardou a sessão só da aba: já deixa a opção marcada.
+  if (typeof MANTER_PADRAO !== 'undefined' && MANTER_PADRAO) document.getElementById('manter-conectado').checked = true;
+
+  document.getElementById('btn-trocar-sair').addEventListener('click', function () {
+    var token = Sessao.token();
+    var finalizar = function () { voltarParaOLogin(); };
+    if (token) chamarApi('apiLogout', token).then(finalizar, finalizar); else finalizar();
+  });
+
+  // Voltou do app (ou recarregou a página) com a troca ainda pendente.
+  try {
+    var salvo = Sessao.usuario();
+    if (Sessao.token() && salvo && salvo.trocaSenhaPendente) mostrarTrocaDeSenha('');
+  } catch (e) { /* storage ilegível: segue para o login normal */ }
+
+  function _formatarCpf(valor) {
+    var digitos = valor.replace(/\D/g, '').slice(0, 11);
+    return digitos
+      .replace(/(\d{3})(\d)/, '$1.$2')
+      .replace(/(\d{3})(\d)/, '$1.$2')
+      .replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+  }
+});
+</script>
+
+  <script src="js/pwa-login.js"></script>
+</body>
+</html>
