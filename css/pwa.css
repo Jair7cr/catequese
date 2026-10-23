@@ -7,7 +7,7 @@
   top: calc(8px + env(safe-area-inset-top));
   left: 50%;
   transform: translateX(-50%);
-  z-index: 2100;
+  z-index: 1045; /* acima do menu lateral (1040), abaixo das janelas (modal 1050+) */
   width: max-content;
   max-width: calc(100% - 32px);
   padding: 8px 16px;
@@ -66,3 +66,47 @@
 }
 .pwa-instalar[hidden] { display: none; }
 .pwa-instalar > i { color: var(--cor-identidade); margin-right: 2px; }
+
+/* Etapa 6 — "N aguardando envio": botão discreto no canto inferior esquerdo (acima da barra inferior no celular). */
+.pwa-fila-indicador {
+  position: fixed;
+  left: 16px;
+  bottom: calc(16px + env(safe-area-inset-bottom));
+  z-index: 1025; /* acima da barra inferior (1020), abaixo do fundo do menu (1030) e das janelas */
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 40px;
+  padding: 8px 14px;
+  border: 1px solid var(--cor-borda);
+  border-left: 4px solid var(--cor-destaque);
+  border-radius: 999px;
+  background: var(--cor-superficie);
+  color: var(--cor-texto);
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  box-shadow: 0 6px 20px rgba(22, 41, 74, 0.14);
+  cursor: pointer;
+}
+.pwa-fila-indicador i { color: var(--cor-destaque-texto); }
+.pwa-fila-indicador:focus-visible { outline: 3px solid var(--cor-primaria); outline-offset: 2px; }
+.pwa-fila-indicador--atencao { border-left-color: var(--cor-erro); }
+.pwa-fila-indicador--atencao i { color: var(--cor-erro-texto); }
+.pwa-fila-indicador[hidden] { display: none; }
+@media (max-width: 768px) {
+  .pwa-fila-indicador { bottom: calc(76px + env(safe-area-inset-bottom)); }
+}
+
+.pwa-fila-lista { list-style: none; margin: 0; padding: 0; }
+.pwa-fila-item {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--cor-divisoria);
+}
+.pwa-fila-item:last-child { border-bottom: 0; }
+.pwa-fila-item__texto { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.pwa-fila-item__motivo { color: var(--cor-erro-texto); }

@@ -6390,7 +6390,11 @@ function iniciarModulo_planejamento() {
       corpo.querySelectorAll('.btn-marcar-realizado').forEach(function (b) {
         b.addEventListener('click', function () {
           chamarApi('apiMarcarEncontroRealizado', TOKEN, b.dataset.id)
-            .then(function () { exibirToast('Encontro marcado como realizado.'); _carregarEncontros(); })
+            .then(function (resultado) {
+              if (resultado && resultado.naFila) exibirToast(resultado.mensagem, false, 'info'); // PWA — Etapa 6 (fila)
+              else exibirToast('Encontro marcado como realizado.');
+              _carregarEncontros();
+            })
             .catch(function (erro) { exibirToast(erro.message, true); });
         });
       });
@@ -6517,8 +6521,11 @@ function iniciarModulo_planejamento() {
     });
     comBotaoOcupado(document.getElementById('btn-salvar-chamada'), function () {
       return chamarApi('apiSalvarFrequencias', TOKEN, encontroSelecionadoParaChamada, lista)
-        .then(function () {
-          exibirToast('Frequência salva.');
+        .then(function (resultado) {
+          // PWA — Etapa 6: sem internet, o aplicativo instalado guarda a chamada na fila de envio e responde naFila
+          // (pwa-fila.js). No Apps Script isso nunca acontece: a mensagem é a de sempre.
+          if (resultado && resultado.naFila) exibirToast(resultado.mensagem, false, 'info');
+          else exibirToast('Frequência salva.');
           var encontroId = encontroSelecionadoParaChamada;
           if (_deveSugerirRealizado(encontroId)) {
             // A pergunta só abre depois que o modal da chamada terminou de fechar (dois modais juntos se atrapalham).
@@ -6555,7 +6562,11 @@ function iniciarModulo_planejamento() {
     }).then(function (confirmado) {
       if (!confirmado) return;
       chamarApi('apiMarcarEncontroRealizado', TOKEN, encontroId)
-        .then(function () { exibirToast('Encontro marcado como realizado.'); _carregarEncontros(); })
+        .then(function (resultado) {
+          if (resultado && resultado.naFila) exibirToast(resultado.mensagem, false, 'info'); // PWA — Etapa 6 (ver acima)
+          else exibirToast('Encontro marcado como realizado.');
+          _carregarEncontros();
+        })
         .catch(function (erro) { exibirToast(erro.message, true); });
     });
   }
@@ -7858,5 +7869,6 @@ function iniciarModulo_backup() {
 
   <script src="js/pwa-app.js"></script>
   <script src="js/pwa-dados.js"></script>
+  <script src="js/pwa-fila.js"></script>
 </body>
 </html>
