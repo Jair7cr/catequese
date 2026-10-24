@@ -224,7 +224,7 @@
     var token = Sessao.token();
     if (!token) return Promise.resolve({ enviados: 0, conflitos: [], recusados: 0, parouPor: 'sessao' });
     enviando = true;
-    var resumo = { enviados: 0, conflitos: [], recusados: 0, parouPor: '' };
+    var resumo = { enviados: 0, conflitos: [], foraDoPrazo: [], recusados: 0, parouPor: '' };
     return listar().then(function (envios) {
       if (automatico) envios = envios.filter(function (e) { return e.situacao !== 'RECUSADO'; });
       return envios.reduce(function (anterior, envio) {
@@ -236,6 +236,9 @@
             if (r.success) {
               resumo.enviados++;
               if (r.data && r.data.conflitos && r.data.conflitos.length) resumo.conflitos.push(envio.rotulo + ': ' + r.message);
+              // Aceito, mas parte dos registros ficou de fora (prazo de 48 h da chamada): a pessoa PRECISA saber — o que
+              // ela lançou sem internet não foi gravado para esses catequizandos (FrequenciasService.salvar).
+              if (/fora do prazo/i.test(r.message || '')) resumo.foraDoPrazo.push(envio.rotulo + ': ' + r.message);
               return remover(envio.chave);
             }
             if (/^Sessão (inválida|expirada)/.test(r.message || '') || /nova senha/.test(r.message || '')) {
@@ -264,7 +267,11 @@
     if (!resumo) return;
     if (automatico && resumo.parouPor === 'semConexao') resumo = Object.assign({}, resumo, { parouPor: '' }); // em silêncio
     if (resumo.enviados) exibirToast(resumo.enviados === 1 ? '1 envio pendente foi concluído.' : resumo.enviados + ' envios pendentes foram concluídos.');
-    resumo.conflitos.forEach(function (texto) { exibirToast(texto, false, 'aviso'); });
+    // Fora do prazo: aviso que fica na tela até ser fechado (há registros que NÃO foram gravados). Se a mesma mensagem
+    // também trouxe conflito, aparece uma vez só, neste formato (o mais importante dos dois).
+    var foraDoPrazo = resumo.foraDoPrazo || [];
+    resumo.conflitos.forEach(function (texto) { if (foraDoPrazo.indexOf(texto) === -1) exibirToast(texto, false, 'aviso'); });
+    foraDoPrazo.forEach(function (texto) { exibirToast(texto, true); });
     if (resumo.recusados) exibirToast((resumo.recusados === 1 ? '1 envio não foi aceito' : resumo.recusados + ' envios não foram aceitos') + ' pelo servidor. Veja o motivo em “aguardando envio”.', false, 'aviso'); // o indicador fica em alerta
     if (resumo.parouPor === 'semConexao') exibirToast('Sem conexão com o servidor. Os envios continuam guardados.', false, 'aviso');
     if (resumo.parouPor === 'sessao' && typeof aoSessaoExpirar === 'function') aoSessaoExpirar(); // a fila fica guardada
