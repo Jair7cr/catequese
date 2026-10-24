@@ -5110,6 +5110,9 @@ function iniciarModulo_catequizandos() {
       var elemento = document.getElementById('catequizando-' + campo);
       if (!elemento) return;
       var v = registro ? desescaparHtml(registro[campo] || '') : '';
+      // O campo de data só aceita AAAA-MM-DD; a lista traz data e hora (2014-05-03T03:00:00.000Z) e o campo ficava
+      // vazio. Mesmo corte que o servidor já usa (DadosComplementaresService, CatequizandosService).
+      if (campo === 'DATA_NASCIMENTO') v = String(v).slice(0, 10);
       elemento.value = campo === 'CEP' ? mascararCep(v) : campo === 'CPF' ? mascararCpf(v) : v;
     });
     // o CPF já gravado nunca é recusado (igual ao servidor); só um CPF diferente é conferido
