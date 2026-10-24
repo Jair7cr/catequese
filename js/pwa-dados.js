@@ -31,7 +31,7 @@
   };
   var VALIDADE_MS = 30 * 24 * 3600 * 1000;
   var ESPERA_MAXIMA_MS = 12000;
-  var INTERVALO_PRECARGA_MS = 6 * 3600 * 1000;
+  var INTERVALO_PRECARGA_MS = 3600 * 1000; // Etapa 7: no máximo de hora em hora (ao abrir e ao voltar a conexão)
   var JANELA_PASSADO_DIAS = 14, JANELA_FUTURO_DIAS = 45, MAX_CHAMADAS = 12;
 
   if (!window.indexedDB) return;
@@ -180,9 +180,14 @@
     return dia >= hoje.getTime() - JANELA_PASSADO_DIAS * 864e5 && dia <= hoje.getTime() + JANELA_FUTURO_DIAS * 864e5;
   }
 
+  var precarregando = false, pedirDeNovo = false;
+
   function preCarregar() {
     var token = Sessao.token();
     if (!token || navigator.onLine === false) return;
+    // Etapa 7: uma pré-carga por vez; se pedirem outra no meio (ex.: a fila acabou de enviar), roda de novo no fim.
+    if (precarregando) { pedirDeNovo = true; return; }
+    precarregando = true;
     var chamar = window.chamarApi; // passa pela reserva acima: cada resposta é guardada
     var parar = false;
     function passo(op) {
@@ -221,14 +226,26 @@
       });
     return fila.then(function () {
       if (!parar) return gravar('meta', { chave: 'preCarga', em: Date.now() });
+    }).catch(function () {}).then(function () {
+      precarregando = false;
+      if (pedirDeNovo) { pedirDeNovo = false; preCarregar(); }
+    });
+  }
+
+  function preCarregarSeVencida() {
+    return pronto.then(function () { return ler('meta', 'preCarga'); }).then(function (ultima) {
+      if (!ultima || Date.now() - ultima.em > INTERVALO_PRECARGA_MS) preCarregar();
     }).catch(function () {});
   }
 
+  // Etapa 7 — atualização automática da consulta:
+  // - conexão de volta: atualiza se a última pré-carga passou do intervalo;
+  // - a fila acabou de enviar: atualiza já, para o aparelho mostrar o que o servidor tem agora.
+  document.addEventListener('catequese:conexao-voltou', function () { setTimeout(preCarregarSeVencida, 2000); });
+  document.addEventListener('catequese:fila-enviada', function () { setTimeout(preCarregar, 1000); });
+  window.DadosOffline = { atualizar: preCarregar };
+
   window.addEventListener('load', function () {
-    setTimeout(function () {
-      pronto.then(function () { return ler('meta', 'preCarga'); }).then(function (ultima) {
-        if (!ultima || Date.now() - ultima.em > INTERVALO_PRECARGA_MS) preCarregar();
-      }).catch(function () {});
-    }, 4000); // depois que a tela inicial já carregou
+    setTimeout(preCarregarSeVencida, 4000); // depois que a tela inicial já carregou
   });
 })();

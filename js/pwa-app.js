@@ -67,6 +67,8 @@
     if (typeof TOKEN !== 'undefined' && TOKEN && typeof aoSessaoExpirar === 'function') {
       chamarApi('apiValidarSessao', TOKEN).catch(function () { /* o próprio chamarApi cuida da sessão vencida */ });
     }
+    // Etapa 7: a fila envia o que estiver pendente e a consulta se atualiza (pwa-fila.js, pwa-dados.js).
+    document.dispatchEvent(new CustomEvent('catequese:conexao-voltou'));
   }
 
   function agendarPing() {

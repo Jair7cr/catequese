@@ -5,7 +5,8 @@
  * O QUE FAZ: quando o catequista salva a CHAMADA (ou marca o encontro como realizado) sem internet, em vez do erro
  * "Sem conexão", a gravação fica guardada no aparelho, numa fila, e a tela mostra "guardada; será enviada". A chamada
  * guardada aparece na próxima vez que for aberta, mesmo sem internet. Um indicador ("N aguardando envio") abre a lista
- * dos envios, com o botão "Enviar agora". O envio automático (ao voltar a conexão e ao abrir o aplicativo) é a Etapa 7.
+ * dos envios, com o botão "Enviar agora". Etapa 7: o envio também é automático — ao abrir o aplicativo, quando a conexão
+ * volta e quando o aplicativo volta para a tela (ver "Envio automático", no fim).
  *
  * REGRAS:
  * - Só para quem usa sem internet (perfil CATEQUISTA com "Manter conectado"), como em pwa-dados.js.
@@ -216,13 +217,16 @@
    * Envia os envios desta pessoa, em ordem. Devolve um resumo:
    * { enviados, conflitos: [mensagens], recusados, parouPor: ''|'semConexao'|'sessao' }.
    */
-  function enviarFila() {
+  /** @param {{automatico: boolean}} [opcoes] automático (Etapa 7) não reenvia o que o servidor já recusou. */
+  function enviarFila(opcoes) {
+    var automatico = !!(opcoes && opcoes.automatico);
     if (enviando) return Promise.resolve(null);
     var token = Sessao.token();
     if (!token) return Promise.resolve({ enviados: 0, conflitos: [], recusados: 0, parouPor: 'sessao' });
     enviando = true;
     var resumo = { enviados: 0, conflitos: [], recusados: 0, parouPor: '' };
     return listar().then(function (envios) {
+      if (automatico) envios = envios.filter(function (e) { return e.situacao !== 'RECUSADO'; });
       return envios.reduce(function (anterior, envio) {
         return anterior.then(function () {
           if (resumo.parouPor) return;
@@ -256,8 +260,9 @@
     });
   }
 
-  function avisarResumo(resumo) {
+  function avisarResumo(resumo, automatico) {
     if (!resumo) return;
+    if (automatico && resumo.parouPor === 'semConexao') resumo = Object.assign({}, resumo, { parouPor: '' }); // em silêncio
     if (resumo.enviados) exibirToast(resumo.enviados === 1 ? '1 envio pendente foi concluído.' : resumo.enviados + ' envios pendentes foram concluídos.');
     resumo.conflitos.forEach(function (texto) { exibirToast(texto, false, 'aviso'); });
     if (resumo.recusados) exibirToast((resumo.recusados === 1 ? '1 envio não foi aceito' : resumo.recusados + ' envios não foram aceitos') + ' pelo servidor. Veja o motivo em “aguardando envio”.', false, 'aviso'); // o indicador fica em alerta
@@ -385,8 +390,44 @@
     };
   }
 
-  // Para a Etapa 7 (envio automático) e para testes.
-  window.FilaDeEnvio = { listar: listar, enviar: enviarFila, avisarResumo: avisarResumo, atualizarIndicador: atualizarIndicador };
+  // ---------- Envio automático (Etapa 7) ----------
+  // Quando: ao abrir o aplicativo, quando a conexão volta (pwa-app.js confirma com o servidor) e quando o aplicativo
+  // volta para a tela. Só o que está aguardando (o recusado espera a pessoa decidir). Sem conexão: em silêncio, tenta na
+  // próxima. O que ficou para trás por resposta lenta ou "em andamento" é tentado de novo em 1 minuto.
+  var ultimaTentativa = 0, novaTentativa = null;
+  var INTERVALO_MINIMO_MS = 20000, REPETIR_EM_MS = 60000;
+
+  function enviarAutomatico() {
+    if (enviando || navigator.onLine === false || !Sessao.token()) return Promise.resolve(null);
+    clearTimeout(novaTentativa);
+    return listar().then(function (envios) {
+      if (!envios.some(function (e) { return e.situacao !== 'RECUSADO'; })) return null;
+      ultimaTentativa = Date.now();
+      return enviarFila({ automatico: true }).then(function (resumo) {
+        avisarResumo(resumo, true);
+        var lista = document.getElementById('pwa-modal-fila');
+        if (lista && lista.classList.contains('show')) desenharLista();
+        if (resumo && !resumo.parouPor) {
+          return listar().then(function (restantes) {
+            if (restantes.some(function (e) { return e.situacao !== 'RECUSADO'; })) novaTentativa = setTimeout(enviarAutomatico, REPETIR_EM_MS);
+          });
+        }
+        return resumo;
+      });
+    }).catch(function () { return null; });
+  }
+
+  document.addEventListener('catequese:conexao-voltou', function () { setTimeout(enviarAutomatico, 500); });
+  document.addEventListener('visibilitychange', function () {
+    if (!document.hidden && Date.now() - ultimaTentativa > INTERVALO_MINIMO_MS) enviarAutomatico();
+  });
+  window.addEventListener('load', function () { setTimeout(enviarAutomatico, 3000); });
+
+  // Para testes e uso de outras partes do aplicativo.
+  window.FilaDeEnvio = {
+    listar: listar, enviar: enviarFila, enviarAutomatico: enviarAutomatico,
+    avisarResumo: avisarResumo, atualizarIndicador: atualizarIndicador
+  };
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', atualizarIndicador);
   else atualizarIndicador();
