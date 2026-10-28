@@ -6408,7 +6408,11 @@ function iniciarModulo_planejamento() {
         c.addEventListener('change', function () {
           c.disabled = true;
           chamarApi('apiDefinirAvaliacaoEsperada', TOKEN, c.dataset.id, c.checked)
-            .then(function () { exibirToast(c.checked ? 'Avaliação marcada como esperada.' : 'Avaliação deixou de ser esperada.'); _carregarEncontros(); })
+            .then(function (resultado) {
+              if (resultado && resultado.naFila) exibirToast(resultado.mensagem, false, 'info'); // aplicativo sem internet (fila)
+              else exibirToast(c.checked ? 'Avaliação marcada como esperada.' : 'Avaliação deixou de ser esperada.');
+              _carregarEncontros();
+            })
             .catch(function (erro) { c.checked = !c.checked; c.disabled = false; exibirToast(erro.message, true); });
         });
       });
@@ -6616,7 +6620,11 @@ function iniciarModulo_planejamento() {
     });
     comBotaoOcupado(document.getElementById('btn-salvar-avaliacao'), function () {
       return chamarApi('apiSalvarAvaliacoes', TOKEN, encontroSelecionadoParaAvaliacao, lista)
-        .then(function () { exibirToast('Avaliação salva.'); modalAvaliacao.hide(); })
+        .then(function (resultado) {
+          if (resultado && resultado.naFila) exibirToast(resultado.mensagem, false, 'info'); // aplicativo sem internet (fila)
+          else exibirToast('Avaliação salva.');
+          modalAvaliacao.hide();
+        })
         .catch(function (erro) { exibirToast(erro.message, true); });
     });
   }

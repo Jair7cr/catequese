@@ -23,7 +23,21 @@
   var BANCO = 'catequese-fila';
   var BANCO_DADOS = 'catequese-dados';
   var PERFIS_OFFLINE = ['CATEQUISTA'];
-  var OPERACOES = { apiSalvarFrequencias: true, apiMarcarEncontroRealizado: true };
+  var OPERACOES = {
+    apiSalvarFrequencias: true, apiMarcarEncontroRealizado: true,
+    apiSalvarAvaliacoes: true, apiDefinirAvaliacaoEsperada: true // avaliação sem internet (27/10/2026)
+  };
+  var ROTULOS = {
+    apiSalvarFrequencias: 'Chamada do ',
+    apiMarcarEncontroRealizado: 'Marcar como realizado: ',
+    apiSalvarAvaliacoes: 'Avaliação do '
+  };
+  var MENSAGENS = {
+    apiSalvarFrequencias: 'Sem internet: a chamada foi guardada no aparelho e será enviada quando a conexão voltar.',
+    apiMarcarEncontroRealizado: 'Sem internet: guardado no aparelho; o encontro será marcado como realizado quando a conexão voltar.',
+    apiSalvarAvaliacoes: 'Sem internet: a avaliação foi guardada no aparelho e será enviada quando a conexão voltar.',
+    apiDefinirAvaliacaoEsperada: 'Sem internet: guardado no aparelho; a mudança em "avaliação esperada" será enviada quando a conexão voltar.'
+  };
 
   var usuario = (typeof USUARIO !== 'undefined' && USUARIO) || null;
   if (!window.indexedDB || !usuario || !usuario.id) return;
@@ -94,6 +108,10 @@
     return comDados('readonly', function (s) { return s.get(chaveDados('apiAbrirChamada', [encontroId])); });
   }
 
+  function avaliacaoGuardada(encontroId) {
+    return comDados('readonly', function (s) { return s.get(chaveDados('apiAbrirAvaliacao', [encontroId])); });
+  }
+
   /** Título e data do encontro, procurados nas listas de encontros guardadas. */
   function descreverEncontro(encontroId) {
     return comDados('readonly', function (s) { return s.getAll(); }).then(function (todos) {
@@ -124,6 +142,33 @@
             if (n && item.EDITAVEL !== false) { item.SITUACAO = n.SITUACAO; item.JUSTIFICATIVA = n.JUSTIFICATIVA || ''; }
           });
           s.put(reg);
+        };
+      } else if (op === 'apiSalvarAvaliacoes') {
+        var chaveAv = chaveDados('apiAbrirAvaliacao', [args[0]]);
+        var pedidoAv = s.get(chaveAv);
+        pedidoAv.onsuccess = function () {
+          var reg = pedidoAv.result;
+          if (!reg || !Array.isArray(reg.dados)) return;
+          var novas = {};
+          args[1].forEach(function (i) { novas[i.CATEQUIZANDO_ID] = i; });
+          reg.dados.forEach(function (item) {
+            var n = novas[item.CATEQUIZANDO_ID];
+            if (!n) return;
+            item.PARTICIPACAO = n.PARTICIPACAO || ''; item.COMPORTAMENTO = n.COMPORTAMENTO || '';
+            item.COMPROMISSOS = n.COMPROMISSOS || ''; item.OBSERVACOES = n.OBSERVACOES || '';
+          });
+          s.put(reg);
+        };
+      } else if (op === 'apiDefinirAvaliacaoEsperada') {
+        var listas = s.getAll();
+        listas.onsuccess = function () {
+          var valor = args[1] === true || args[1] === 'SIM' ? 'SIM' : 'NAO';
+          (listas.result || []).forEach(function (r) {
+            if (r.op !== 'apiListarEncontros' || !Array.isArray(r.dados)) return;
+            var mudou = false;
+            r.dados.forEach(function (e) { if (e.ID === args[0] && e.POSSUI_AVALIACAO !== valor) { e.POSSUI_AVALIACAO = valor; mudou = true; } });
+            if (mudou) s.put(r);
+          });
         };
       } else if (op === 'apiMarcarEncontroRealizado') {
         var todos = s.getAll();
@@ -156,6 +201,21 @@
         });
         return [encontroId, lista];
       });
+    } else if (op === 'apiSalvarAvaliacoes') {
+      // Mesma ideia da chamada: a DATA_ALTERACAO de cada avaliação como estava quando o formulário foi aberto.
+      preparo = avaliacaoGuardada(encontroId).then(function (reg) {
+        var base = {};
+        ((reg && reg.dados) || []).forEach(function (i) { if (i.DATA_ALTERACAO !== undefined) base[i.CATEQUIZANDO_ID] = i.DATA_ALTERACAO; });
+        var lista = argsSemToken[1].map(function (item) {
+          var copia = {
+            CATEQUIZANDO_ID: item.CATEQUIZANDO_ID, PARTICIPACAO: item.PARTICIPACAO || '', COMPORTAMENTO: item.COMPORTAMENTO || '',
+            COMPROMISSOS: item.COMPROMISSOS || '', OBSERVACOES: item.OBSERVACOES || ''
+          };
+          if (Object.prototype.hasOwnProperty.call(base, item.CATEQUIZANDO_ID)) copia.DATA_ALTERACAO_BASE = base[item.CATEQUIZANDO_ID];
+          return copia;
+        });
+        return [encontroId, lista];
+      });
     }
     return Promise.all([preparo, descreverEncontro(encontroId)]).then(function (r) {
       var args = r[0];
@@ -164,7 +224,9 @@
         usuarioId: usuario.id,
         op: op,
         args: args,
-        rotulo: (op === 'apiSalvarFrequencias' ? 'Chamada do ' : 'Marcar como realizado: ') + r[1],
+        rotulo: op === 'apiDefinirAvaliacaoEsperada'
+          ? (r[0][1] === true || r[0][1] === 'SIM' ? 'Avaliação esperada (ligar): ' : 'Avaliação esperada (desligar): ') + r[1]
+          : ROTULOS[op] + r[1],
         criadoEm: Date.now(),
         situacao: 'AGUARDANDO',
         motivo: ''
@@ -186,9 +248,7 @@
         return porNaFila(op, argsSemToken).then(function () {
           return {
             naFila: true,
-            mensagem: op === 'apiSalvarFrequencias'
-              ? 'Sem internet: a chamada foi guardada no aparelho e será enviada quando a conexão voltar.'
-              : 'Sem internet: guardado no aparelho; o encontro será marcado como realizado quando a conexão voltar.'
+            mensagem: MENSAGENS[op]
           };
         }, function () { throw erro; }); // não conseguiu guardar: mostra o erro de sempre
       });

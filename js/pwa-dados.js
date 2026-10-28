@@ -7,7 +7,8 @@
  *   sempre online; o Catequizando não entra nesta etapa).
  * - No aparelho, só os dados essenciais ao uso sem internet: as MESMAS respostas que o servidor já entrega a esse
  *   catequista (que só vê os próprios grupos) para Início, Avisos, Meus catequizandos, Planejamento (grupos e
- *   encontros) e Chamada. Nada de dados complementares (saúde), arquivos, fórum, biblioteca, galeria ou relatórios.
+ *   encontros), Chamada e — desde 27/10/2026 — Avaliação (inclusive o texto das Observações, aprovado com as mesmas
+ *   regras de apagar). Nada de dados complementares (saúde), arquivos, fórum, biblioteca, galeria ou relatórios.
  * - Só com "Manter conectado neste aparelho" marcado (o aviso do login já diz "Use só em aparelho seu"). Sem isso,
  *   nada é guardado e o que houver é apagado.
  * - Tudo é apagado ao Sair, quando a sessão vence ou quando outra pessoa entra no mesmo aparelho. O que tiver mais
@@ -27,7 +28,8 @@
   var PERFIS_OFFLINE = ['CATEQUISTA'];
   var OPERACOES = {
     apiObterResumoDashboard: true, apiObterConfigParoquia: true, apiListarAvisos: true,
-    apiListarParaCompletarCadastro: true, apiListarGrupos: true, apiListarEncontros: true, apiAbrirChamada: true
+    apiListarParaCompletarCadastro: true, apiListarGrupos: true, apiListarEncontros: true, apiAbrirChamada: true,
+    apiAbrirAvaliacao: true // avaliação sem internet (27/10/2026; Observações no aparelho aprovadas, mesmas regras de apagar)
   };
   var VALIDADE_MS = 30 * 24 * 3600 * 1000;
   var ESPERA_MAXIMA_MS = 12000;
@@ -167,8 +169,10 @@
         if (respondeu) return;
         if (!erro || !erro.semConexao) { respondeu = true; reject(erro); return; }
         lerGuardado(chave).then(function (reg) {
-          if (reg || op !== 'apiAbrirChamada') return reg;
-          return montarChamadaNoAparelho(args[1]); // item 1 (27/10): chamada nunca baixada
+          if (reg) return reg;
+          if (op === 'apiAbrirChamada') return montarChamadaNoAparelho(args[1]); // item 1 (27/10): chamada nunca baixada
+          if (op === 'apiAbrirAvaliacao') return montarAvaliacaoNoAparelho(args[1]); // avaliação sem internet
+          return null;
         }).then(function (reg) {
           if (respondeu) return;
           respondeu = true;
@@ -209,12 +213,18 @@
     candidatos.reduce(function (anterior, e) {
       return anterior.then(function (parar) {
         if (parar) return true;
-        return lerGuardado(chaveDe('apiAbrirChamada', [token, e.ID])).then(function (reg) {
-          if (reg && !reg.montadaNoAparelho) return false; // já guardada (a montada no aparelho é trocada pela do servidor)
-          return buscarEGuardar('apiAbrirChamada', token, e.ID).then(function () { return false; }, function (erro) {
-            return !!(erro && erro.semConexao); // sem rede: para; outro erro (ex.: sem acesso): segue para o próximo
+        var ops = ['apiAbrirChamada'].concat(avaliavel(e) ? ['apiAbrirAvaliacao'] : []);
+        return ops.reduce(function (antes, op) {
+          return antes.then(function (pararAqui) {
+            if (pararAqui) return true;
+            return lerGuardado(chaveDe(op, [token, e.ID])).then(function (reg) {
+              if (reg && !reg.montadaNoAparelho) return false; // já guardada (a montada no aparelho é trocada pela do servidor)
+              return buscarEGuardar(op, token, e.ID).then(function () { return false; }, function (erro) {
+                return !!(erro && erro.semConexao); // sem rede: para; outro erro (ex.: sem acesso): segue para o próximo
+              });
+            });
           });
-        });
+        }, Promise.resolve(false));
       });
     }, Promise.resolve(false)).then(function () { completando = false; }, function () { completando = false; });
   }
@@ -224,8 +234,64 @@
       .then(function (todos) { return todos || []; }).catch(function () { return []; });
   }
 
+  /** Avaliação liberada: encontro realizado ou com "avaliação esperada" (mesma regra do servidor, AvaliacoesService). */
+  function avaliavel(e) { return !!e && (e.REALIZADO === 'SIM' || e.POSSUI_AVALIACAO === 'SIM'); }
+
+  function argDaChave(chave) {
+    try { return JSON.parse(chave.slice(chave.indexOf('|') + 1))[0]; } catch (e) { return null; }
+  }
+
   /**
-   * Sem internet e sem a chamada guardada: monta a lista a partir da chamada mais recente guardada de OUTRO encontro do
+   * Lista de catequizandos do grupo de um encontro, a partir do que está guardado: a chamada ou avaliação mais recente
+   * de um encontro do MESMO grupo. `doProprioEncontro`: aceita também a chamada do próprio encontro (para a avaliação,
+   * que usa a mesma turma da chamada, inclusive uma chamada montada no aparelho).
+   * @return {?{itens: Array<{CATEQUIZANDO_ID, NOME}>, salvoEm: number}}
+   */
+  function turmaDoEncontro(todos, encontroId, doProprioEncontro) {
+    var encontrosDoGrupo = {};
+    var achouGrupo = false;
+    todos.forEach(function (r) {
+      if (r.op !== 'apiListarEncontros' || !Array.isArray(r.dados)) return;
+      if (!r.dados.some(function (e) { return e.ID === encontroId; })) return;
+      achouGrupo = true;
+      r.dados.forEach(function (e) { encontrosDoGrupo[e.ID] = true; });
+    });
+    if (!achouGrupo) return null;
+    var base = null, proprio = null;
+    todos.forEach(function (r) {
+      if ((r.op !== 'apiAbrirChamada' && r.op !== 'apiAbrirAvaliacao') || !Array.isArray(r.dados) || !r.dados.length) return;
+      var id = argDaChave(r.chave);
+      if (id === encontroId) {
+        if (doProprioEncontro && r.op === 'apiAbrirChamada') proprio = r;
+        return;
+      }
+      if (r.montadaNoAparelho || !encontrosDoGrupo[id]) return;
+      if (!base || r.salvoEm > base.salvoEm) base = r;
+    });
+    var fonte = proprio || base;
+    if (!fonte) return null;
+    return {
+      salvoEm: fonte.salvoEm,
+      itens: fonte.dados.map(function (i) { return { CATEQUIZANDO_ID: i.CATEQUIZANDO_ID, NOME: i.NOME }; })
+    };
+  }
+
+  function guardarMontada(op, encontroId, turma, item, aviso) {
+    var registro = {
+      chave: op + '|' + JSON.stringify([encontroId]),
+      op: op,
+      montadaNoAparelho: true,
+      salvoEm: turma.salvoEm,
+      dados: turma.itens.map(function (i) { return Object.assign({ CATEQUIZANDO_ID: i.CATEQUIZANDO_ID, NOME: i.NOME }, item); })
+    };
+    return gravar('respostas', registro).catch(function () {}).then(function () {
+      if (typeof exibirToast === 'function') exibirToast(aviso, false, 'info');
+      return registro;
+    });
+  }
+
+  /**
+   * Sem internet e sem a chamada guardada: monta a lista a partir da chamada guardada mais recente de OUTRO encontro do
    * MESMO grupo — todos como Presente (padrão do sistema, RN-014), sem data de alteração (o servidor aponta conflito se
    * alguém já tiver lançado). Quem foi matriculado depois dessa chamada guardada não aparece; ao enviar, o servidor o
    * considera presente, como já faz para quem não tem registro. Fica guardada marcada como "montada no aparelho" (para
@@ -234,40 +300,27 @@
    */
   function montarChamadaNoAparelho(encontroId) {
     return listarGuardados().then(function (todos) {
-      var grupoId = null;
-      var encontrosDoGrupo = {};
-      todos.forEach(function (r) {
-        if (r.op !== 'apiListarEncontros' || !Array.isArray(r.dados)) return;
-        if (!r.dados.some(function (e) { return e.ID === encontroId; })) return;
-        try { grupoId = JSON.parse(r.chave.slice(r.chave.indexOf('|') + 1))[0]; } catch (e) { grupoId = null; }
-        r.dados.forEach(function (e) { encontrosDoGrupo[e.ID] = true; });
-      });
-      if (!grupoId) return null;
-      var base = null;
-      todos.forEach(function (r) {
-        if (r.op !== 'apiAbrirChamada' || r.montadaNoAparelho || !Array.isArray(r.dados) || !r.dados.length) return;
-        var id = null;
-        try { id = JSON.parse(r.chave.slice(r.chave.indexOf('|') + 1))[0]; } catch (e) { return; }
-        if (id === encontroId || !encontrosDoGrupo[id]) return;
-        if (!base || r.salvoEm > base.salvoEm) base = r;
-      });
-      if (!base) return null;
-      var registro = {
-        chave: 'apiAbrirChamada|' + JSON.stringify([encontroId]),
-        op: 'apiAbrirChamada',
-        montadaNoAparelho: true,
-        salvoEm: base.salvoEm,
-        dados: base.dados.map(function (i) {
-          return { CATEQUIZANDO_ID: i.CATEQUIZANDO_ID, NOME: i.NOME, SITUACAO: 'PRESENTE', JUSTIFICATIVA: '', EDITAVEL: true, DATA_ALTERACAO: '' };
-        })
-      };
-      return gravar('respostas', registro).catch(function () {}).then(function () {
-        if (typeof exibirToast === 'function') {
-          exibirToast('Sem internet: chamada montada no aparelho com a lista do grupo, todos como Presente. ' +
-            'Quem foi matriculado há pouco pode não aparecer.', false, 'info');
-        }
-        return registro;
-      });
+      var turma = turmaDoEncontro(todos, encontroId, false);
+      if (!turma) return null;
+      return guardarMontada('apiAbrirChamada', encontroId, turma,
+        { SITUACAO: 'PRESENTE', JUSTIFICATIVA: '', EDITAVEL: true, DATA_ALTERACAO: '' },
+        'Sem internet: chamada montada no aparelho com a lista do grupo, todos como Presente. ' +
+        'Quem foi matriculado há pouco pode não aparecer.');
+    });
+  }
+
+  /**
+   * Sem internet e sem a avaliação guardada (ex.: encontro marcado como realizado sem internet): monta o formulário em
+   * branco com a turma da chamada do próprio encontro (ou de outro encontro do grupo). Sem data de alteração: o servidor
+   * aponta conflito se alguém já tiver avaliado. Trocada pela do servidor assim que houver internet.
+   */
+  function montarAvaliacaoNoAparelho(encontroId) {
+    return listarGuardados().then(function (todos) {
+      var turma = turmaDoEncontro(todos, encontroId, true);
+      if (!turma) return null;
+      return guardarMontada('apiAbrirAvaliacao', encontroId, turma,
+        { PARTICIPACAO: '', COMPORTAMENTO: '', COMPROMISSOS: '', OBSERVACOES: '', DATA_ALTERACAO: '' },
+        'Sem internet: avaliação montada no aparelho com a lista do grupo. Quem foi matriculado há pouco pode não aparecer.');
     });
   }
 
@@ -320,9 +373,15 @@
         encontros.sort(function (a, b) { // os mais próximos de hoje primeiro
           return Math.abs(new Date(a.DATA_ENCONTRO) - hoje) - Math.abs(new Date(b.DATA_ENCONTRO) - hoje);
         });
-        return encontros.slice(0, MAX_CHAMADAS).reduce(function (anterior, e) {
+        var proximos = encontros.slice(0, MAX_CHAMADAS);
+        return proximos.reduce(function (anterior, e) {
           return anterior.then(passo('apiAbrirChamada', e.ID));
-        }, Promise.resolve());
+        }, Promise.resolve()).then(function () {
+          // Avaliação sem internet: a avaliação dos encontros já liberados (realizado ou "avaliação esperada").
+          return proximos.filter(avaliavel).reduce(function (anterior, e) {
+            return anterior.then(passo('apiAbrirAvaliacao', e.ID));
+          }, Promise.resolve());
+        });
       });
     return fila.then(function () {
       if (!parar) return gravar('meta', { chave: 'preCarga', em: Date.now() });
