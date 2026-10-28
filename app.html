@@ -1297,6 +1297,12 @@ details.cartao-modulo[open] > summary::after { content: "\f077"; }
   .tabela-cartoes .acoes-linha { justify-content: flex-start; }
   .tabela-cartoes tr:has(.estado-vazio) { border: 0; background: transparent; }
   .table-responsive:has(.tabela-cartoes) { background: transparent; overflow: visible; }
+  /* Avaliação do encontro em cartões: nome no alto; rótulo e campo na mesma linha, para o cartão ficar compacto. */
+  .tabela-avaliacao td:first-child { font-weight: 600; padding-bottom: 6px !important; }
+  .tabela-avaliacao td[data-rotulo] { display: flex !important; align-items: center; gap: 8px; }
+  .tabela-avaliacao td[data-rotulo]::before { flex: 0 0 112px; }
+  .tabela-avaliacao td[data-rotulo] > .form-select,
+  .tabela-avaliacao td[data-rotulo] > .form-control { flex: 1 1 auto; min-width: 0; }
 
   /* Modais em tela cheia, com a ação principal sempre visível no rodapé. */
   .modal-dialog { margin: 0; min-height: 100%; max-width: none; }
@@ -2163,7 +2169,7 @@ details.cartao-modulo[open] > summary::after { content: "\f077"; }
                 </div>
                 <div class="modal-body">
                   <div class="table-responsive" tabindex="0">
-                    <table class="table table-sm align-middle">
+                    <table class="table table-sm align-middle tabela-cartoes tabela-avaliacao">
                       <thead><tr><th scope="col">Catequizando</th><th scope="col">Participação</th><th scope="col">Comportamento</th><th scope="col">Compromissos</th><th scope="col">Observações</th></tr></thead>
                       <tbody id="tabela-avaliacao-corpo"></tbody>
                     </table>
@@ -2814,7 +2820,7 @@ details.cartao-modulo[open] > summary::after { content: "\f077"; }
 
   <script src="vendor/bootstrap/bootstrap.bundle.min.js"></script>
   <script src="vendor/chartjs/chart.umd.js"></script>
-  <script>var VERSAO_APP = '2026.10.27';</script>
+  <script>var VERSAO_APP = '2026.10.28';</script>
   <script src="config.js"></script>
   <script src="js/pwa-inicio.js"></script>
   <script>
@@ -6587,20 +6593,23 @@ function iniciarModulo_planejamento() {
       var opcoesEscala = ['', 'OTIMO', 'BOM', 'REGULAR', 'INSUFICIENTE'];
       var rotulos = { '': '-', OTIMO: 'Ótimo', BOM: 'Bom', REGULAR: 'Regular', INSUFICIENTE: 'Insuficiente' };
 
-      function montarSelect(criterio, valorAtual) {
+      // No celular a tabela vira cartões (classe tabela-cartoes): o nome fica no alto de cada cartão e cada campo leva o
+      // rótulo (data-rotulo). Cada campo tem nome acessível com o critério e o catequizando (leitor de tela).
+      function montarSelect(criterio, valorAtual, rotuloAcessivel) {
         var opcoes = opcoesEscala.map(function (v) {
           return '<option value="' + v + '" ' + (v === valorAtual ? 'selected' : '') + '>' + rotulos[v] + '</option>';
         }).join('');
-        return '<select class="form-select form-select-sm select-' + criterio + '">' + opcoes + '</select>';
+        return '<select class="form-select form-select-sm select-' + criterio + '" aria-label="' + escapeHtml(rotuloAcessivel) + '">' + opcoes + '</select>';
       }
 
       corpo.innerHTML = lista.map(function (item) {
+        var nome = item.NOME || '';
         return '<tr data-catequizando="' + escapeHtml(item.CATEQUIZANDO_ID) + '">' +
-          '<td>' + escapeHtml(item.NOME) + '</td>' +
-          '<td>' + montarSelect('participacao', item.PARTICIPACAO) + '</td>' +
-          '<td>' + montarSelect('comportamento', item.COMPORTAMENTO) + '</td>' +
-          '<td>' + montarSelect('compromissos', item.COMPROMISSOS) + '</td>' +
-          '<td><input class="form-control form-control-sm input-observacoes" value="' + escapeHtml(item.OBSERVACOES || '') + '"></td>' +
+          '<td>' + escapeHtml(nome) + '</td>' +
+          '<td data-rotulo="Participação">' + montarSelect('participacao', item.PARTICIPACAO, 'Participação de ' + nome) + '</td>' +
+          '<td data-rotulo="Comportamento">' + montarSelect('comportamento', item.COMPORTAMENTO, 'Comportamento de ' + nome) + '</td>' +
+          '<td data-rotulo="Compromissos">' + montarSelect('compromissos', item.COMPROMISSOS, 'Compromissos de ' + nome) + '</td>' +
+          '<td data-rotulo="Observações"><input class="form-control form-control-sm input-observacoes" aria-label="' + escapeHtml('Observações sobre ' + nome) + '" value="' + escapeHtml(item.OBSERVACOES || '') + '"></td>' +
           '</tr>';
       }).join('') || '<tr><td colspan="5"><div class="estado-vazio"><i class="fa-solid fa-user-group"></i><p class="titulo">Nenhum catequizando matriculado neste grupo</p></div></td></tr>';
       modalAvaliacao.show();
@@ -6924,6 +6933,9 @@ function iniciarModulo_avisos() {
     cacheGrupos = grupos;
     var select = document.getElementById('aviso-GRUPO_ID');
     select.innerHTML = grupos.map(function (g) { return '<option value="' + escapeHtml(g.ID) + '">' + escapeHtml(g.NOME) + ' — ' + escapeHtml(g.NOME_COMUNIDADE) + '</option>'; }).join('');
+  }).catch(function (erro) {
+    // Sessão vencida já leva ao login (aoSessaoExpirar); outro erro avisa — antes ficava só no console.
+    if (!/^Sessão (inválida|expirada)/.test(erro.message || '')) exibirToast('Não foi possível carregar a lista de grupos. ' + erro.message, true);
   });
 
   _carregar();
@@ -7399,6 +7411,9 @@ function iniciarModulo_meus_catequizandos() {
       return '<option value="' + escapeHtml(g.ID) + '">' + escapeHtml(g.NOME) + '</option>';
     }).join('');
     _carregar();
+  }).catch(function (erro) {
+    // Sessão vencida já leva ao login (aoSessaoExpirar); outro erro avisa — antes ficava só no console.
+    if (!/^Sessão (inválida|expirada)/.test(erro.message || '')) exibirToast('Não foi possível carregar a lista de grupos. ' + erro.message, true);
   });
 }
 </script>
