@@ -425,6 +425,8 @@
   }
 
   document.addEventListener('catequese:conexao-voltou', function () { setTimeout(enviarAutomatico, 500); });
+  // "Lembrar este aparelho" (pwa-sessao.js): a sessão foi renovada sem senha — envia o que parou por sessão vencida.
+  document.addEventListener('catequese:sessao-renovada', function () { setTimeout(enviarAutomatico, 300); });
   document.addEventListener('visibilitychange', function () {
     if (!document.hidden && Date.now() - ultimaTentativa > INTERVALO_MINIMO_MS) enviarAutomatico();
   });

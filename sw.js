@@ -13,7 +13,7 @@
  * config.js (endereço do servidor) é o único arquivo buscado primeiro na rede: ele é editado direto no GitHub e
  * não deve ficar preso numa versão antiga.
  */
-var VERSAO = '2026.10.27-5c3255ed53';
+var VERSAO = '2026.10.27-1db28bb082';
 var CACHE = 'catequese-' + VERSAO;
 var ARQUIVOS = [
   "./",
@@ -30,6 +30,7 @@ var ARQUIVOS = [
   "js/pwa-fila.js",
   "js/pwa-inicio.js",
   "js/pwa-login.js",
+  "js/pwa-sessao.js",
   "manifest.webmanifest",
   "vendor/bootstrap/bootstrap.bundle.min.js",
   "vendor/bootstrap/bootstrap.min.css",
