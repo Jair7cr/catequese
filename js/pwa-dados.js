@@ -145,7 +145,11 @@
     var daRede = chamarApiAnterior.apply(this, arguments);
     var respondeu = false;
 
-    daRede.then(function (dados) { guardar(chave, op, dados); }, function () {});
+    daRede.then(function (dados) {
+      guardar(chave, op, dados);
+      // Item 1 (27/10): a lista de encontros chegou do servidor — baixa já a chamada dos encontros novos da janela.
+      if (op === 'apiListarEncontros') completarChamadas(dados);
+    }, function () {});
 
     return new Promise(function (resolve, reject) {
       // Servidor muito lento (sinal fraco): se houver dado guardado, mostra-o; a resposta da rede ainda atualiza o banco.
@@ -163,6 +167,9 @@
         if (respondeu) return;
         if (!erro || !erro.semConexao) { respondeu = true; reject(erro); return; }
         lerGuardado(chave).then(function (reg) {
+          if (reg || op !== 'apiAbrirChamada') return reg;
+          return montarChamadaNoAparelho(args[1]); // item 1 (27/10): chamada nunca baixada
+        }).then(function (reg) {
           if (respondeu) return;
           respondeu = true;
           if (reg) { avisar(reg); resolve(reg.dados); } else reject(erro);
@@ -170,6 +177,99 @@
       });
     });
   };
+
+  /**
+   * Busca em SEGUNDO PLANO (pré-carga, completar chamadas): vai ao servidor e guarda a resposta, sem a reserva do
+   * aparelho e sem montar chamada — esses recursos são só para a tela que a pessoa abriu.
+   */
+  function buscarEGuardar(op) {
+    var args = Array.prototype.slice.call(arguments, 1);
+    return chamarApiAnterior.apply(null, arguments).then(function (dados) {
+      guardar(chaveDe(op, args), op, dados);
+      return dados;
+    });
+  }
+
+  // ---------- Chamada de encontro novo (item 1, 27/10/2026) ----------
+  // Antes, só a pré-carga (ao abrir / ao voltar a conexão, no máximo de hora em hora) baixava as chamadas: um encontro
+  // criado com internet não tinha chamada guardada e, sem internet, ela não abria.
+
+  /** Com internet: baixa em segundo plano a chamada dos encontros da janela que ainda não estão guardados. */
+  var completando = false;
+  function completarChamadas(encontros) {
+    if (completando || precarregando || !Array.isArray(encontros)) return;
+    var token = Sessao.token();
+    if (!token) return;
+    var hoje = Date.now();
+    var candidatos = encontros.filter(dentroDaJanela).sort(function (a, b) {
+      return Math.abs(new Date(a.DATA_ENCONTRO) - hoje) - Math.abs(new Date(b.DATA_ENCONTRO) - hoje);
+    }).slice(0, MAX_CHAMADAS);
+    if (!candidatos.length) return;
+    completando = true;
+    candidatos.reduce(function (anterior, e) {
+      return anterior.then(function (parar) {
+        if (parar) return true;
+        return lerGuardado(chaveDe('apiAbrirChamada', [token, e.ID])).then(function (reg) {
+          if (reg && !reg.montadaNoAparelho) return false; // já guardada (a montada no aparelho é trocada pela do servidor)
+          return buscarEGuardar('apiAbrirChamada', token, e.ID).then(function () { return false; }, function (erro) {
+            return !!(erro && erro.semConexao); // sem rede: para; outro erro (ex.: sem acesso): segue para o próximo
+          });
+        });
+      });
+    }, Promise.resolve(false)).then(function () { completando = false; }, function () { completando = false; });
+  }
+
+  function listarGuardados() {
+    return pronto.then(function () { return operar('respostas', 'readonly', function (s) { return s.getAll(); }); })
+      .then(function (todos) { return todos || []; }).catch(function () { return []; });
+  }
+
+  /**
+   * Sem internet e sem a chamada guardada: monta a lista a partir da chamada mais recente guardada de OUTRO encontro do
+   * MESMO grupo — todos como Presente (padrão do sistema, RN-014), sem data de alteração (o servidor aponta conflito se
+   * alguém já tiver lançado). Quem foi matriculado depois dessa chamada guardada não aparece; ao enviar, o servidor o
+   * considera presente, como já faz para quem não tem registro. Fica guardada marcada como "montada no aparelho" (para
+   * reabrir mostrando o que foi lançado) e é trocada pela do servidor assim que houver internet.
+   * @return {Promise<?Object>} registro no formato guardado, ou null se não houver como montar.
+   */
+  function montarChamadaNoAparelho(encontroId) {
+    return listarGuardados().then(function (todos) {
+      var grupoId = null;
+      var encontrosDoGrupo = {};
+      todos.forEach(function (r) {
+        if (r.op !== 'apiListarEncontros' || !Array.isArray(r.dados)) return;
+        if (!r.dados.some(function (e) { return e.ID === encontroId; })) return;
+        try { grupoId = JSON.parse(r.chave.slice(r.chave.indexOf('|') + 1))[0]; } catch (e) { grupoId = null; }
+        r.dados.forEach(function (e) { encontrosDoGrupo[e.ID] = true; });
+      });
+      if (!grupoId) return null;
+      var base = null;
+      todos.forEach(function (r) {
+        if (r.op !== 'apiAbrirChamada' || r.montadaNoAparelho || !Array.isArray(r.dados) || !r.dados.length) return;
+        var id = null;
+        try { id = JSON.parse(r.chave.slice(r.chave.indexOf('|') + 1))[0]; } catch (e) { return; }
+        if (id === encontroId || !encontrosDoGrupo[id]) return;
+        if (!base || r.salvoEm > base.salvoEm) base = r;
+      });
+      if (!base) return null;
+      var registro = {
+        chave: 'apiAbrirChamada|' + JSON.stringify([encontroId]),
+        op: 'apiAbrirChamada',
+        montadaNoAparelho: true,
+        salvoEm: base.salvoEm,
+        dados: base.dados.map(function (i) {
+          return { CATEQUIZANDO_ID: i.CATEQUIZANDO_ID, NOME: i.NOME, SITUACAO: 'PRESENTE', JUSTIFICATIVA: '', EDITAVEL: true, DATA_ALTERACAO: '' };
+        })
+      };
+      return gravar('respostas', registro).catch(function () {}).then(function () {
+        if (typeof exibirToast === 'function') {
+          exibirToast('Sem internet: chamada montada no aparelho com a lista do grupo, todos como Presente. ' +
+            'Quem foi matriculado há pouco pode não aparecer.', false, 'info');
+        }
+        return registro;
+      });
+    });
+  }
 
   // ---------- Pré-carga em segundo plano ----------
   function dentroDaJanela(encontro) {
@@ -188,7 +288,7 @@
     // Etapa 7: uma pré-carga por vez; se pedirem outra no meio (ex.: a fila acabou de enviar), roda de novo no fim.
     if (precarregando) { pedirDeNovo = true; return; }
     precarregando = true;
-    var chamar = window.chamarApi; // passa pela reserva acima: cada resposta é guardada
+    var chamar = buscarEGuardar; // guarda cada resposta; em segundo plano nunca usa a reserva nem monta chamada
     var parar = false;
     function passo(op) {
       var args = Array.prototype.slice.call(arguments);
