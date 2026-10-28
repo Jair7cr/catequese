@@ -5435,12 +5435,16 @@ function iniciarModulo_catequizandos() {
     return '';
   }
 
-  function _renderizarCampoResposta(rotulo, valor, classificacao, editavel, atributoDados) {
+  function _renderizarCampoResposta(rotulo, valor, classificacao, editavel, atributoDados, ehData) {
     var valorEscapado = escapeHtml(valor || '');
     if (editavel) {
+      // Correção 28/10/2026: data de nascimento em campo de data (mostra dd/mm/aaaa); data-original guarda o valor
+      // de partida para o Salvar enviar só o que mudou
       return '<div class="mb-2 col-md-6"><label class="form-label small mb-1">' + escapeHtml(rotulo) + _badgeClassificacao(classificacao) + '</label>' +
-        '<input type="text" class="form-control form-control-sm campo-resposta-editavel" ' + atributoDados + ' value="' + valorEscapado + '"></div>';
+        '<input type="' + (ehData ? 'date' : 'text') + '" class="form-control form-control-sm campo-resposta-editavel" ' + atributoDados +
+        (ehData ? ' max="' + _diaIso(new Date()) + '"' : '') + ' value="' + valorEscapado + '" data-original="' + valorEscapado + '"></div>';
     }
+    if (ehData && /^\d{4}-\d{2}-\d{2}$/.test(valor || '')) valorEscapado = valor.substring(8, 10) + '/' + valor.substring(5, 7) + '/' + valor.substring(0, 4);
     return '<div class="mb-2 col-md-6"><label class="form-label small mb-1 text-muted">' + escapeHtml(rotulo) + _badgeClassificacao(classificacao) + ' <i class="fa-solid fa-lock fa-2xs"></i></label>' +
       '<div class="form-control form-control-sm bg-light text-muted">' + (valorEscapado || '<span class="fst-italic">(vazio)</span>') + '</div></div>';
   }
@@ -5470,7 +5474,7 @@ function iniciarModulo_catequizandos() {
       html += '<h6 class="text-muted mt-3">Dados da inscrição</h6><div class="row">';
       html += camposNaoAdministrativos.map(function (c) {
         var rotulo = ROTULOS_CAMPOS_FIXOS_RESPOSTA[c.CHAVE] || c.CHAVE;
-        return _renderizarCampoResposta(rotulo, c.VALOR, c.CLASSIFICACAO, c.EDITAVEL, 'data-campo-fixo="' + c.CHAVE + '"');
+        return _renderizarCampoResposta(rotulo, c.VALOR, c.CLASSIFICACAO, c.EDITAVEL, 'data-campo-fixo="' + c.CHAVE + '"', c.CHAVE === 'DATA_NASCIMENTO');
       }).join('');
       html += '</div>';
 
@@ -5497,14 +5501,21 @@ function iniciarModulo_catequizandos() {
   }
 
   function _salvarRespostaInscricao() {
+    // Correção 28/10/2026: envia SÓ os campos que mudaram (antes ia tudo, e o que ninguém mexeu era regravado —
+    // a data virava texto técnico e os nomes com apóstrofo eram protegidos de novo a cada salvamento)
+    var mudou = function (input) { return input.value !== input.getAttribute('data-original'); };
     var alteracoesFixas = {};
-    document.querySelectorAll('#resposta-inscricao-corpo [data-campo-fixo]').forEach(function (input) {
-      alteracoesFixas[input.dataset.campoFixo] = input.value;
+    document.querySelectorAll('#resposta-inscricao-corpo input[data-campo-fixo]').forEach(function (input) {
+      if (mudou(input)) alteracoesFixas[input.dataset.campoFixo] = input.value;
     });
     var alteracoesCustomizadas = [];
-    document.querySelectorAll('#resposta-inscricao-corpo [data-resposta-campo-id]').forEach(function (input) {
-      alteracoesCustomizadas.push({ RESPOSTA_CAMPO_ID: input.dataset.respostaCampoId, VALOR: input.value });
+    document.querySelectorAll('#resposta-inscricao-corpo input[data-resposta-campo-id]').forEach(function (input) {
+      if (mudou(input)) alteracoesCustomizadas.push({ RESPOSTA_CAMPO_ID: input.dataset.respostaCampoId, VALOR: input.value });
     });
+    if (!Object.keys(alteracoesFixas).length && !alteracoesCustomizadas.length) {
+      exibirToast('Nenhuma alteração para salvar.');
+      return;
+    }
 
     chamarApi('apiAtualizarRespostaInscricao', TOKEN, catequizandoSelecionadoResposta, alteracoesFixas, alteracoesCustomizadas)
       .then(function () {
