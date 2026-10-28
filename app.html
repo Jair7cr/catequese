@@ -1039,6 +1039,7 @@ details.cartao-modulo[open] > summary::after { content: "\f077"; }
 .linha-chamada.bloqueada { background: var(--cor-superficie-alt); }
 .linha-chamada .nome-chamada { font-weight: 600; font-size: 0.9375rem; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .linha-chamada .aviso-prazo { font-size: 0.8125rem; font-weight: 500; color: var(--cor-texto-suave); }
+.linha-chamada .aviso-prazo--admin { color: var(--cor-info); } /* chamada antiga aberta pelo Administrador: só informa */
 .linha-chamada .campo-justificativa { grid-column: 1 / -1; }
 .linha-chamada .campo-justificativa[hidden] { display: none; }
 .linha-chamada .select-situacao { display: none; }  /* o select original continua no DOM: _salvarChamada() lê dele */
@@ -6490,7 +6491,11 @@ function iniciarModulo_planejamento() {
         }).join('');
         return '<div class="linha-chamada' + (item.EDITAVEL ? '' : ' bloqueada') + '" data-catequizando="' + escapeHtml(item.CATEQUIZANDO_ID) + '">' +
           '<div class="nome-chamada">' + escapeHtml(item.NOME) +
-          (item.EDITAVEL ? '' : '<span class="aviso-prazo"><i class="fa-solid fa-lock" aria-hidden="true"></i> Fora do prazo de 48 h — só o Administrador altera</span>') + '</div>' +
+          (!item.EDITAVEL
+            ? '<span class="aviso-prazo"><i class="fa-solid fa-lock" aria-hidden="true"></i> Fora do prazo de 48 h — só o Administrador altera</span>'
+            : item.FORA_DO_PRAZO // Administrador numa chamada antiga (28/10/2026): pode alterar, mas sabe que passou do prazo
+              ? '<span class="aviso-prazo aviso-prazo--admin"><i class="fa-solid fa-circle-info" aria-hidden="true"></i> Lançada há mais de 48 h — alteração permitida ao Administrador</span>'
+              : '') + '</div>' +
           '<div class="segmentado" role="group" aria-label="Situação de ' + escapeHtml(item.NOME) + '">' + botoes + '</div>' + select +
           '<div class="campo-justificativa"' + (item.SITUACAO === 'FALTA_JUSTIFICADA' ? '' : ' hidden') + '>' +
           '<label class="form-label small mb-1" for="' + idJust + '">Justificativa</label>' +
