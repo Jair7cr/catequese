@@ -7118,9 +7118,11 @@ function iniciarModulo_relatorios() {
     el('rel-COMUNIDADE_ID').innerHTML = _opcoes(central.comunidades, usa('comunidadeObrigatoria') ? 'Selecione...' : 'Todas');
     el('rel-COMUNIDADE_ID').value = comSel;
     el('rel-grupo-obrigatorio').classList.toggle('d-none', !usa('grupoObrigatorio'));
+    var grupoSel = el('rel-GRUPO_ID').value; // Relatórios — Fase 5 (M10): mantém o grupo escolhido ao trocar de relatório
     el('rel-GRUPO_ID').innerHTML = usa('grupoObrigatorio')
       ? _opcoes(central.grupos, central.grupos.length ? 'Selecione...' : 'Você ainda não está vinculado a nenhum grupo', function (g) { return g.nome + (g.comunidade ? ' — ' + g.comunidade : ''); })
       : _opcoes(central.grupos, 'Todos', function (g) { return g.nome + (g.comunidade ? ' — ' + g.comunidade : ''); });
+    if (grupoSel && central.grupos.some(function (g) { return g.id === grupoSel; })) el('rel-GRUPO_ID').value = grupoSel;
     el('rel-ajuda-periodo').textContent = usa('periodo2') ? 'Informe início e fim dos dois períodos.' : 'Deixe as datas em branco para incluir tudo.';
     el('rel-rotulo-inicial').textContent = r && r.rotuloPeriodo ? 'De — ' + r.rotuloPeriodo.toLowerCase() : 'Data inicial';
     el('rel-rotulo-final').textContent = r && r.rotuloPeriodo ? 'Até — ' + r.rotuloPeriodo.toLowerCase() : 'Data final';
