@@ -5165,7 +5165,10 @@ function iniciarModulo_catequizandos() {
           '<td>' + (etapa ? etapa.NOME : '-') + '</td>' +
           '<td>' + (grupo ? grupo.NOME : '-') + '</td>' +
           '<td>' + escapeHtml(m.ANO) + '</td>' +
-          '<td>' + new Date(m.DATA_MATRICULA).toLocaleDateString('pt-BR') + '</td>' +
+          // Relatórios — Fase 4: só o Administrador abre este histórico; o lápis corrige a data de início
+          '<td class="celula-inicio-matricula"><span class="texto-inicio">' + new Date(m.DATA_MATRICULA).toLocaleDateString('pt-BR') + '</span>' +
+            ' <button class="btn btn-sm btn-link p-0 ms-1 btn-corrigir-inicio" data-id="' + escapeHtml(m.ID) + '" data-catequizando="' + escapeHtml(catequizandoId) + '"' +
+            ' data-dia="' + escapeHtml(_diaIso(m.DATA_MATRICULA)) + '" title="Corrigir data de início" aria-label="Corrigir data de início"><i class="fa-solid fa-pen" aria-hidden="true"></i></button></td>' +
           '<td>' + (m.DATA_ENCERRAMENTO ? new Date(m.DATA_ENCERRAMENTO).toLocaleDateString('pt-BR') : '-') + '</td>' +
           '<td>' + seloSituacao(m.SITUACAO) + '</td>' +
           '<td>' + (m.SITUACAO === 'CONCLUIDA'
@@ -5174,6 +5177,9 @@ function iniciarModulo_catequizandos() {
           '</tr>';
       }).join('') || '<tr><td colspan="7"><div class="estado-vazio"><i class="fa-solid fa-clock-rotate-left"></i><p class="titulo">Nenhuma matrícula registrada</p></div></td></tr>';
 
+      corpo.querySelectorAll('.btn-corrigir-inicio').forEach(function (b) {
+        b.addEventListener('click', function () { _editarInicio(b); });
+      });
       document.querySelectorAll('.btn-certificado').forEach(function (b) {
         b.addEventListener('click', function () {
           exibirToast('Gerando certificado...');
@@ -5183,6 +5189,45 @@ function iniciarModulo_catequizandos() {
         });
       });
       modalHistorico.show();
+    });
+  }
+
+  /** 'aaaa-mm-dd' local de um valor de data (para o campo date). */
+  function _diaIso(valor) {
+    var d = new Date(valor);
+    if (isNaN(d.getTime())) return '';
+    return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2);
+  }
+
+  /**
+   * Relatórios — Fase 4: edição no próprio histórico (sem abrir outra janela por cima). Troca a data por um campo
+   * de data com Salvar/Cancelar. O servidor valida (não futura, não depois do encerramento, sem sobrepor a matrícula
+   * anterior) e registra o valor antigo e o novo no log.
+   */
+  function _editarInicio(botao) {
+    var celula = botao.closest('td');
+    var original = celula.innerHTML;
+    var hoje = _diaIso(new Date());
+    celula.innerHTML = '<div class="d-flex flex-wrap align-items-center gap-1">' +
+      '<input type="date" class="form-control form-control-sm" style="max-width: 10.5rem;" aria-label="Nova data de início" max="' + hoje + '" value="' + escapeHtml(botao.dataset.dia) + '">' +
+      '<button class="btn btn-sm btn-primario btn-salvar-inicio"><i class="fa-solid fa-check" aria-hidden="true"></i> Salvar</button>' +
+      '<button class="btn btn-sm btn-outline-secondary btn-cancelar-inicio">Cancelar</button></div>';
+    var campo = celula.querySelector('input');
+    campo.focus();
+    celula.querySelector('.btn-cancelar-inicio').addEventListener('click', function () {
+      celula.innerHTML = original;
+      celula.querySelector('.btn-corrigir-inicio').addEventListener('click', function () { _editarInicio(celula.querySelector('.btn-corrigir-inicio')); });
+    });
+    celula.querySelector('.btn-salvar-inicio').addEventListener('click', function () {
+      var salvar = this;
+      if (!campo.value) { exibirToast('Informe a nova data de início.', true); return; }
+      salvar.disabled = true;
+      chamarApi('apiCorrigirDataMatricula', TOKEN, botao.dataset.id, campo.value)
+        .then(function (resultado) {
+          exibirToast((resultado && resultado.mensagem) || 'Data de início corrigida.');
+          _abrirHistorico(botao.dataset.catequizando);
+        })
+        .catch(function (erro) { salvar.disabled = false; exibirToast(erro.message, true); });
     });
   }
 
