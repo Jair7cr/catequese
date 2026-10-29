@@ -1295,7 +1295,7 @@ details.cartao-modulo[open] > summary::after { content: "\f077"; }
   .tabela-cartoes td[data-rotulo]::before { content: attr(data-rotulo) ": "; color: var(--cor-texto-suave); font-size: 0.8125rem; }
   .tabela-cartoes td:first-child { font-size: 1rem; }
   .tabela-cartoes td.text-end { padding-top: 8px !important; }
-  .tabela-cartoes .acoes-linha { justify-content: flex-start; }
+  .tabela-cartoes .acoes-linha { justify-content: flex-start; flex-wrap: wrap; } /* Etapa 3: 3 botões no encontro (Roteiro) quebram linha no celular */
   .tabela-cartoes tr:has(.estado-vazio) { border: 0; background: transparent; }
   .table-responsive:has(.tabela-cartoes) { background: transparent; overflow: visible; }
   /* Avaliação do encontro em cartões: nome no alto; rótulo e campo na mesma linha, para o cartão ficar compacto. */
@@ -2106,6 +2106,8 @@ details.cartao-modulo[open] > summary::after { content: "\f077"; }
                       <label class="form-label" for="mestre-ENCONTRO_MESTRE_ID">Encontro Livro</label>
                       <select class="form-select" id="mestre-ENCONTRO_MESTRE_ID" required></select>
                     </div>
+                    <!-- Auditoria catequética — Etapa 3: prévia do roteiro do Encontro Livro escolhido -->
+                    <div class="mb-3 small" id="mestre-previa" aria-live="polite"></div>
                     <div class="mb-3">
                       <label class="form-label" for="mestre-DATA_ENCONTRO">Data</label>
                       <input type="date" class="form-control" id="mestre-DATA_ENCONTRO" required>
@@ -2146,6 +2148,22 @@ details.cartao-modulo[open] > summary::after { content: "\f077"; }
           </div>
 
           <!-- Modal: chamada de frequência -->
+          <!-- Modal: roteiro do encontro (Auditoria catequética — Etapa 3) -->
+          <div class="modal fade" id="modal-roteiro" tabindex="-1" aria-labelledby="modal-roteiro-titulo">
+            <div class="modal-dialog modal-lg modal-dialog-scrollable">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h5 class="modal-title" id="modal-roteiro-titulo">Roteiro — <span id="roteiro-titulo-encontro"></span></h5>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+                </div>
+                <div class="modal-body" id="roteiro-corpo"></div>
+                <div class="modal-footer">
+                  <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Fechar</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <div class="modal fade" id="modal-chamada" tabindex="-1" aria-labelledby="modal-chamada-titulo">
             <div class="modal-dialog modal-lg">
               <div class="modal-content">
@@ -6396,6 +6414,8 @@ function iniciarModulo_planejamento() {
   var encontroSelecionadoParaAvaliacao = null;
   var cacheGrupos = [];
   var modalDeMestre = new bootstrap.Modal(document.getElementById('modal-encontro-de-mestre'));
+  var modalRoteiro = new bootstrap.Modal(document.getElementById('modal-roteiro'));
+  var mestresCache = [];
   var modalProprio = new bootstrap.Modal(document.getElementById('modal-encontro-proprio'));
   var modalChamada = new bootstrap.Modal(document.getElementById('modal-chamada'));
   var modalAvaliacao = new bootstrap.Modal(document.getElementById('modal-avaliacao'));
@@ -6408,6 +6428,7 @@ function iniciarModulo_planejamento() {
     _carregarEncontros();
   });
   document.getElementById('btn-novo-encontro-mestre').addEventListener('click', _abrirModalDeMestre);
+  document.getElementById('mestre-ENCONTRO_MESTRE_ID').addEventListener('change', _mostrarPreviaMestre);
   document.getElementById('btn-novo-encontro-proprio').addEventListener('click', function () {
     if (!grupoSelecionado) { exibirToast('Selecione um grupo primeiro.', false, 'aviso'); return; }
     document.getElementById('form-encontro-proprio').reset();
@@ -6478,6 +6499,7 @@ function iniciarModulo_planejamento() {
           '<td data-rotulo="Avaliação esperada"><div class="form-check form-switch mb-0"><input class="form-check-input chk-avaliacao-esperada" type="checkbox" role="switch" data-id="' + escapeHtml(e.ID) + '" aria-label="Avaliação esperada neste encontro"' + (e.POSSUI_AVALIACAO === 'SIM' ? ' checked' : '') + '></div></td>' +
           '<td class="text-end"><div class="acoes-linha">' +
           (!realizado ? '<button class="btn btn-sm btn-outline-secondary btn-marcar-realizado" data-id="' + escapeHtml(e.ID) + '"><i class="fa-solid fa-check" aria-hidden="true"></i> Marcar realizado</button>' : '') +
+          (_temRoteiro(e) ? '<button class="btn btn-sm btn-outline-secondary btn-roteiro" data-id="' + escapeHtml(e.ID) + '"><i class="fa-solid fa-book-open" aria-hidden="true"></i> Roteiro</button>' : '') +
           '<button class="btn btn-sm btn-primario btn-chamada" data-id="' + escapeHtml(e.ID) + '" data-titulo="' + escapeHtml(e.TITULO) + '"><i class="fa-solid fa-clipboard-check" aria-hidden="true"></i> Chamada</button>' +
           ((realizado || e.POSSUI_AVALIACAO === 'SIM') ? '<button class="btn btn-sm btn-outline-secondary btn-avaliacao" data-id="' + escapeHtml(e.ID) + '" data-titulo="' + escapeHtml(e.TITULO) + '"><i class="fa-solid fa-star" aria-hidden="true"></i> Avaliar</button>' : '') +
           '</div></td></tr>';
@@ -6493,6 +6515,9 @@ function iniciarModulo_planejamento() {
             })
             .catch(function (erro) { exibirToast(erro.message, true); });
         });
+      });
+      corpo.querySelectorAll('.btn-roteiro').forEach(function (b) {
+        b.addEventListener('click', function () { _abrirRoteiro(b.dataset.id); });
       });
       corpo.querySelectorAll('.btn-chamada').forEach(function (b) {
         b.addEventListener('click', function () { _abrirChamada(b.dataset.id, b.dataset.titulo); });
@@ -6518,14 +6543,54 @@ function iniciarModulo_planejamento() {
   function _abrirModalDeMestre() {
     if (!grupoSelecionado) { exibirToast('Selecione um grupo primeiro.', false, 'aviso'); return; }
     chamarApi('apiListarEncontrosMestresPorEtapa', TOKEN, grupoSelecionado.ETAPA_ID).then(function (mestres) {
+      mestresCache = mestres;
       var select = document.getElementById('mestre-ENCONTRO_MESTRE_ID');
       select.innerHTML = mestres.map(function (m) { return '<option value="' + escapeHtml(m.ID) + '">' + escapeHtml(m.TITULO) + '</option>'; }).join('');
       if (mestres.length === 0) {
         select.innerHTML = '<option value="">Nenhum Encontro Livro cadastrado para esta etapa</option>';
       }
       document.getElementById('form-encontro-de-mestre').reset();
+      _mostrarPreviaMestre();
       modalDeMestre.show();
     });
+  }
+
+  // ---------- Roteiro do encontro (Auditoria catequética — Etapa 3) ----------
+  // O roteiro (tema, descrição e link do material) que a coordenação cadastra nos Encontros Livro passa a ser visto
+  // pelo catequista: na linha do encontro (botão "Roteiro") e na escolha do Encontro Livro (prévia).
+
+  function _texto(valor) { return String(desescaparHtml(valor || '')).trim(); }
+
+  function _temRoteiro(e) { return !!(_texto(e.TEMA) || _texto(e.DESCRICAO) || _texto(e.MATERIAL_URL)); }
+
+  /** HTML do roteiro: tema, texto (quebras de linha preservadas) e link do material (só https, abre em outra aba). */
+  function _htmlRoteiro(r) {
+    var partes = [];
+    if (_texto(r.TEMA)) partes.push('<p class="mb-2"><span class="fw-semibold">Tema:</span> ' + escapeHtml(_texto(r.TEMA)) + '</p>');
+    if (_texto(r.DESCRICAO)) partes.push('<div class="texto-roteiro mb-2" style="white-space: pre-wrap;">' + escapeHtml(_texto(r.DESCRICAO)) + '</div>');
+    var link = linkSeguro(_texto(r.MATERIAL_URL));
+    if (link) partes.push('<p class="mb-0"><a href="' + link + '" target="_blank" rel="noopener noreferrer"><i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i> Abrir material de apoio</a></p>');
+    else if (_texto(r.MATERIAL_URL)) partes.push('<p class="mb-0 text-muted">Material de apoio: ' + escapeHtml(_texto(r.MATERIAL_URL)) + '</p>');
+    return partes.join('');
+  }
+
+  function _abrirRoteiro(encontroId) {
+    var e = encontrosCache.find(function (x) { return x.ID === encontroId; });
+    if (!e) return;
+    document.getElementById('roteiro-titulo-encontro').textContent = _texto(e.TITULO);
+    document.getElementById('roteiro-corpo').innerHTML =
+      '<p class="text-muted small mb-3">' + escapeHtml(formatarDataBR(e.DATA_ENCONTRO)) + ' · ' +
+      (e.ENCONTRO_MESTRE_ID ? 'Roteiro da coordenação (Encontro Livro)' : 'Encontro próprio') + '</p>' + _htmlRoteiro(e);
+    modalRoteiro.show();
+  }
+
+  function _mostrarPreviaMestre() {
+    var id = document.getElementById('mestre-ENCONTRO_MESTRE_ID').value;
+    var m = mestresCache.find(function (x) { return x.ID === id; });
+    var previa = document.getElementById('mestre-previa');
+    previa.innerHTML = m && _temRoteiro(m)
+      ? '<div class="border rounded p-2 bg-light">' + _htmlRoteiro(m) + '</div>'
+      : (m ? '<p class="text-muted mb-0">Este Encontro Livro ainda não tem roteiro cadastrado.</p>' : '');
   }
 
   function _criarDeMestre(evento) {
