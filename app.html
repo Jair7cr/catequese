@@ -1861,10 +1861,15 @@ details.cartao-modulo[open] > summary::after { content: "\f077"; }
                         <option value="CRISMA">Crisma</option>
                       </select>
                     </div>
-                    <div class="col-md-4"><input type="date" class="form-control" id="sacramento-DATA_SACRAMENTO" required></div>
+                    <div class="col-md-4"><input type="date" class="form-control" id="sacramento-DATA_SACRAMENTO" required aria-label="Data da celebração" title="Data da celebração (não pode ser futura)"></div>
                     <div class="col-md-4"><input class="form-control" id="sacramento-LOCAL" placeholder="Local"></div>
                     <div class="col-md-6"><input class="form-control" id="sacramento-CELEBRANTE" placeholder="Celebrante"></div>
                     <div class="col-md-6"><input class="form-control" id="sacramento-PAROQUIA_CELEBRACAO" placeholder="Paróquia (se diferente desta)"></div>
+
+                    <div class="col-12"><p class="text-muted small mb-0">Registre só sacramentos já celebrados — a data não pode ser futura.</p></div>
+                    <div class="col-12" id="sacramento-aviso-batismo" style="display:none;">
+                      <div class="alert alert-warning py-2 small mb-0" role="status">Não há Batismo registrado para este catequizando. Confira antes de salvar — o registro continua permitido.</div>
+                    </div>
 
                     <div class="col-12" id="sacramento-bloco-padrinho" style="display:none;">
                       <div class="alert alert-info py-2 small mb-2">Na Crisma, escolha padrinho OU madrinha — nunca os dois.</div>
@@ -2821,7 +2826,7 @@ details.cartao-modulo[open] > summary::after { content: "\f077"; }
 
   <script src="vendor/bootstrap/bootstrap.bundle.min.js"></script>
   <script src="vendor/chartjs/chart.umd.js"></script>
-  <script>var VERSAO_APP = '2026.10.28';</script>
+  <script>var VERSAO_APP = '2026.10.29';</script>
   <script src="config.js"></script>
   <script src="js/pwa-inicio.js"></script>
   <script>
@@ -4923,6 +4928,7 @@ function iniciarModulo_catequizandos() {
   document.getElementById('select-etapa-promocao').addEventListener('change', _verificarPromocaoNaTela);
   document.getElementById('btn-gerar-whatsapp').addEventListener('click', _gerarPreviaWhatsApp);
   document.getElementById('sacramento-TIPO').addEventListener('change', _atualizarBlocoPadrinho);
+  document.getElementById('sacramento-TIPO').addEventListener('change', _atualizarAvisoBatismo);
   document.getElementById('form-sacramento').addEventListener('submit', _salvarSacramento);
   document.getElementById('btn-salvar-resposta-inscricao').addEventListener('click', _salvarRespostaInscricao);
 
@@ -5348,11 +5354,25 @@ function iniciarModulo_catequizandos() {
 
   var _rotulosSacramento = { BATISMO: 'Batismo', PRIMEIRA_EUCARISTIA: 'Primeira Eucaristia', CRISMA: 'Crisma' };
 
+  // Auditoria catequética — Etapa 1: sacramentos ativos do catequizando aberto (null enquanto carrega), para o aviso
+  // de Eucaristia/Crisma sem Batismo registrado
+  var sacramentosAtivosCarregados = null;
+
+  function _atualizarAvisoBatismo() {
+    var tipo = document.getElementById('sacramento-TIPO').value;
+    var semBatismo = tipo !== 'BATISMO' && sacramentosAtivosCarregados !== null &&
+      !sacramentosAtivosCarregados.some(function (s) { return s.TIPO === 'BATISMO'; });
+    document.getElementById('sacramento-aviso-batismo').style.display = semBatismo ? 'block' : 'none';
+  }
+
   function _abrirSacramentos(catequizandoId, nome) {
     catequizandoSelecionadoSacramentos = catequizandoId;
+    sacramentosAtivosCarregados = null;
     document.getElementById('sacramentos-nome-catequizando').textContent = nome;
     document.getElementById('form-sacramento').reset();
+    document.getElementById('sacramento-DATA_SACRAMENTO').max = _diaIso(new Date()); // Etapa 1: sem data futura
     _atualizarBlocoPadrinho();
+    _atualizarAvisoBatismo();
     _carregarSacramentos();
     modalSacramentos.show();
   }
@@ -5360,6 +5380,8 @@ function iniciarModulo_catequizandos() {
   function _carregarSacramentos() {
     chamarApi('apiListarSacramentos', TOKEN, catequizandoSelecionadoSacramentos).then(function (registros) {
       var ativos = registros.filter(function (s) { return s.STATUS === 'ATIVO'; });
+      sacramentosAtivosCarregados = ativos;
+      _atualizarAvisoBatismo();
       document.getElementById('tabela-sacramentos-corpo').innerHTML = ativos.map(function (s) {
         var padrinhoMadrinha = s.NOME_PADRINHO ? escapeHtml(s.NOME_PADRINHO) + ' (padrinho)' : (s.NOME_MADRINHA ? escapeHtml(s.NOME_MADRINHA) + ' (madrinha)' : '-');
         return '<tr><td>' + escapeHtml(_rotulosSacramento[s.TIPO] || s.TIPO) + '</td>' +
@@ -5399,6 +5421,7 @@ function iniciarModulo_catequizandos() {
         exibirToast('Sacramento salvo.');
         document.getElementById('form-sacramento').reset();
         _atualizarBlocoPadrinho();
+        _atualizarAvisoBatismo();
         _carregarSacramentos();
         _carregar(); // atualiza os resumos BATIZADO/PRIMEIRA_EUCARISTIA/CONFIRMACAO na listagem
       })
