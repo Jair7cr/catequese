@@ -2250,6 +2250,12 @@ details.cartao-modulo[open] > summary::after { content: "\f077"; }
                   <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
                 </div>
                 <div class="modal-body">
+                  <!-- Auditoria catequética — Etapa 2: link público de fotos suspenso; o Administrador confere e revoga os antigos -->
+                  <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                    <p class="text-muted small mb-0 flex-grow-1">As fotos ficam visíveis só para a equipe, pelo sistema. O link público está suspenso até a paróquia definir a política de uso de imagem.</p>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" id="btn-verificar-links-galeria" style="display:none;"><i class="fa-solid fa-link-slash" aria-hidden="true"></i> Verificar links públicos</button>
+                  </div>
+                  <div id="galeria-resultado-links" class="small mb-2" role="status"></div>
                   <div id="galeria-lista-itens" class="row g-2 mb-3"></div>
                   <hr>
                   <form id="form-galeria-novo" class="row g-2">
@@ -6417,6 +6423,7 @@ function iniciarModulo_planejamento() {
   document.getElementById('biblioteca-TIPO').addEventListener('change', _atualizarCamposBiblioteca);
   document.getElementById('form-biblioteca-novo').addEventListener('submit', _enviarParaBiblioteca);
   document.getElementById('btn-abrir-galeria').addEventListener('click', _abrirGaleria);
+  document.getElementById('btn-verificar-links-galeria').addEventListener('click', _verificarLinksGaleria);
   document.getElementById('galeria-TIPO').addEventListener('change', _atualizarCamposGaleria);
   document.getElementById('form-galeria-novo').addEventListener('submit', _enviarParaGaleria);
 
@@ -6868,8 +6875,33 @@ function iniciarModulo_planejamento() {
         .catch(function (erro) { exibirToast(erro.message, true); });
     }
 
+    // Auditoria catequética — Etapa 2: fotos do grupo aberto com link público antigo (preenchido pela verificação)
+    var galeriaComLink = {};
+
+    function _verificarLinksGaleria() {
+      var botao = document.getElementById('btn-verificar-links-galeria');
+      var saida = document.getElementById('galeria-resultado-links');
+      botao.disabled = true;
+      saida.textContent = 'Verificando no Drive...';
+      chamarApi('apiVerificarLinksPublicosGaleria', TOKEN, grupoSelecionado.ID)
+        .then(function (r) {
+          galeriaComLink = {};
+          (r.comLink || []).forEach(function (id) { galeriaComLink[id] = true; });
+          saida.textContent = r.comLink.length
+            ? r.comLink.length + ' de ' + r.verificadas + ' foto(s) ainda têm link público. Use "revogar" em cada uma.'
+            : 'Nenhuma das ' + r.verificadas + ' foto(s) deste grupo tem link público.';
+          if (r.ilegiveis) saida.textContent += ' (' + r.ilegiveis + ' não puderam ser conferidas no Drive.)';
+          _carregarGaleria();
+        })
+        .catch(function (erro) { saida.textContent = ''; exibirToast(erro.message, true); })
+        .then(function () { botao.disabled = false; });
+    }
+
     function _abrirGaleria() {
       if (!grupoSelecionado) { exibirToast('Selecione um grupo primeiro.', false, 'aviso'); return; }
+      galeriaComLink = {};
+      document.getElementById('galeria-resultado-links').textContent = '';
+      document.getElementById('btn-verificar-links-galeria').style.display = USUARIO.perfil === 'ADMINISTRADOR' ? '' : 'none';
       document.getElementById('galeria-nome-grupo').textContent = grupoSelecionado.NOME;
       document.getElementById('form-galeria-novo').reset();
       _atualizarCamposGaleria();
@@ -6899,9 +6931,10 @@ function iniciarModulo_planejamento() {
             envolver +
             '<div class="small">' + legenda + '</div>' +
             '<div class="text-muted small">' + escapeHtml(formatarDataBR(item.DATA_EVENTO)) + '</div>' +
-            (item.TIPO === 'FOTO'
-              ? '<div class="small"><button class="btn btn-sm btn-link p-0 btn-compartilhar-galeria" data-id="' + escapeHtml(item.ID) + '">compartilhar link</button> · ' +
-                '<button class="btn btn-sm btn-link text-secondary p-0 btn-revogar-galeria" data-id="' + escapeHtml(item.ID) + '">revogar</button></div>'
+            // Etapa 2: sem "compartilhar link"; foto que ainda tem link antigo ganha selo e "revogar" após a verificação
+            (item.TIPO === 'FOTO' && galeriaComLink[item.ID]
+              ? '<div class="small"><span class="badge bg-warning-subtle text-warning-emphasis">Link público ativo</span> ' +
+                '<button class="btn btn-sm btn-link text-danger p-0 btn-revogar-galeria" data-id="' + escapeHtml(item.ID) + '">revogar</button></div>'
               : '') +
             (item.PODE_APAGAR ? '<button class="btn btn-sm btn-link text-danger p-0 btn-apagar-galeria" data-id="' + escapeHtml(item.ID) + '">apagar</button>' : '') +
             '</div>';
@@ -6910,25 +6943,18 @@ function iniciarModulo_planejamento() {
         ligarLinksDeArquivoPrivado(container);
         carregarMiniaturasPrivadas(container);
 
-        // A foto é PRIVADA por padrão. Estes botões ativam/revogam, foto a foto, um link
-        // "qualquer pessoa com o link" (para mostrar aos responsáveis fora do app).
-        container.querySelectorAll('.btn-compartilhar-galeria').forEach(function (b) {
-          b.addEventListener('click', function () {
-            confirmarAcao('Gerar um link para compartilhar esta foto? Qualquer pessoa com o link vai poder vê-la, até você revogar.', { textoConfirmar: 'Gerar link' }).then(function (confirmado) {
-              if (!confirmado) return;
-              chamarApi('apiDefinirCompartilhamentoGaleria', TOKEN, b.dataset.id, true)
-                .then(function (r) {
-                  confirmarAcao('Link da foto: ' + r.url + '  (copie e envie; use "revogar" para desativar)', { titulo: 'Link ativado', textoConfirmar: 'Fechar' });
-                })
-                .catch(function (erro) { exibirToast(erro.message, true); });
-            });
-          });
-        });
+        // A foto é PRIVADA. Auditoria catequética — Etapa 2: gerar link público está suspenso; "revogar" só aparece
+        // nas fotos que a verificação do Administrador encontrou com link antigo.
         container.querySelectorAll('.btn-revogar-galeria').forEach(function (b) {
           b.addEventListener('click', function () {
+            b.disabled = true;
             chamarApi('apiDefinirCompartilhamentoGaleria', TOKEN, b.dataset.id, false)
-              .then(function () { exibirToast('Link revogado. A foto voltou a ser privada.'); })
-              .catch(function (erro) { exibirToast(erro.message, true); });
+              .then(function () {
+                delete galeriaComLink[b.dataset.id];
+                exibirToast('Link revogado. A foto voltou a ser privada.');
+                _carregarGaleria();
+              })
+              .catch(function (erro) { b.disabled = false; exibirToast(erro.message, true); });
           });
         });
 
