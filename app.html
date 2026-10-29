@@ -1709,6 +1709,18 @@ details.cartao-modulo[open] > summary::after { content: "\f077"; }
                         <input type="checkbox" class="form-check-input" id="catequizando-CONFIRMACAO">
                         <label class="form-check-label" for="catequizando-CONFIRMACAO">Crisma</label>
                       </div>
+                      <!-- Auditoria catequética — Etapa 9a: aviso ao desmarcar uma caixa que tem registro detalhado com data -->
+                      <div class="col-12" id="catequizando-aviso-sacramento" role="status" style="display:none;"></div>
+                    </div>
+
+                    <!-- Auditoria catequética — Etapa 9b: padrinho ou madrinha de Crisma previsto (nada obrigatório) -->
+                    <h6 class="text-muted">Padrinho ou madrinha de Crisma (previsto)</h6>
+                    <div class="row g-2 mb-3">
+                      <div class="col-md-6"><label class="form-label" for="catequizando-PADRINHO_CRISMA_NOME">Nome do padrinho ou madrinha</label><input class="form-control" id="catequizando-PADRINHO_CRISMA_NOME"></div>
+                      <div class="col-md-6"><label class="form-label" for="catequizando-PADRINHO_CRISMA_TELEFONE">Telefone</label><input class="form-control" id="catequizando-PADRINHO_CRISMA_TELEFONE" type="tel"></div>
+                      <div class="col-md-6"><label class="form-label" for="catequizando-PADRINHO_CRISMA_DATA">Data da Crisma do padrinho ou madrinha</label><input class="form-control" id="catequizando-PADRINHO_CRISMA_DATA" type="date"></div>
+                      <div class="col-md-6"><label class="form-label" for="catequizando-PADRINHO_CRISMA_PAROQUIA">Paróquia onde foi crismado(a)</label><input class="form-control" id="catequizando-PADRINHO_CRISMA_PAROQUIA"></div>
+                      <div class="col-12"><p class="text-muted small mb-0">Anotação da preparação. Não marca a Crisma como recebida.</p></div>
                     </div>
 
                     <h6 class="text-muted">Saúde e emergência</h6>
@@ -1874,12 +1886,10 @@ details.cartao-modulo[open] > summary::after { content: "\f077"; }
                     </div>
 
                     <div class="col-12" id="sacramento-bloco-padrinho" style="display:none;">
-                      <div class="alert alert-info py-2 small mb-2">Na Crisma, escolha padrinho OU madrinha — nunca os dois.</div>
+                      <!-- Etapa 9b: um campo só para padrinho OU madrinha; vem preenchido com o previsto do cadastro -->
                       <div class="row g-2">
-                        <div class="col-md-3"><input class="form-control form-control-sm" id="sacramento-NOME_PADRINHO" placeholder="Nome do padrinho"></div>
-                        <div class="col-md-3"><input class="form-control form-control-sm" id="sacramento-TELEFONE_PADRINHO" placeholder="Telefone do padrinho"></div>
-                        <div class="col-md-3"><input class="form-control form-control-sm" id="sacramento-NOME_MADRINHA" placeholder="Nome da madrinha"></div>
-                        <div class="col-md-3"><input class="form-control form-control-sm" id="sacramento-TELEFONE_MADRINHA" placeholder="Telefone da madrinha"></div>
+                        <div class="col-md-6"><input class="form-control form-control-sm" id="sacramento-NOME_PADRINHO" placeholder="Nome do padrinho ou madrinha" aria-label="Nome do padrinho ou madrinha"></div>
+                        <div class="col-md-6"><input class="form-control form-control-sm" id="sacramento-TELEFONE_PADRINHO" placeholder="Telefone do padrinho ou madrinha" aria-label="Telefone do padrinho ou madrinha"></div>
                       </div>
                     </div>
 
@@ -2194,6 +2204,7 @@ details.cartao-modulo[open] > summary::after { content: "\f077"; }
                   <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
                 </div>
                 <div class="modal-body">
+                  <p class="text-muted small mb-2">Uso opcional, para seu acompanhamento. Não é nota e não conta para a promoção.</p>
                   <div class="table-responsive" tabindex="0">
                     <table class="table table-sm align-middle tabela-cartoes tabela-avaliacao">
                       <thead><tr><th scope="col">Catequizando</th><th scope="col">Participação</th><th scope="col">Comportamento</th><th scope="col">Compromissos</th><th scope="col">Observações</th></tr></thead>
@@ -4910,6 +4921,9 @@ function iniciarModulo_catequizandos() {
 
   document.getElementById('btn-novo-catequizando').addEventListener('click', function () { _abrirCadastro(null); });
   document.getElementById('form-catequizando').addEventListener('submit', _salvarCadastro);
+  ['BATIZADO', 'PRIMEIRA_EUCARISTIA', 'CONFIRMACAO'].forEach(function (c) {
+    document.getElementById('catequizando-' + c).addEventListener('change', _avisarCaixasSacramento);
+  });
   var modalAcessosLote = new bootstrap.Modal(document.getElementById('modal-acessos-lote'));
   document.getElementById('btn-acessos-lote').addEventListener('click', function () {
     var sel = document.getElementById('acessos-lote-grupo');
@@ -5138,7 +5152,9 @@ function iniciarModulo_catequizandos() {
     'NOME', 'DATA_NASCIMENTO', 'SEXO', 'CPF', 'TELEFONE', 'WHATSAPP', 'EMAIL',
     'RESPONSAVEL_ID', 'ALERGIAS', 'MEDICAMENTOS', 'RESTRICOES', 'OBSERVACOES_MEDICAS',
     'CONTATO_EMERGENCIAL', 'TELEFONE_EMERGENCIAL', 'PARENTESCO_EMERGENCIAL', 'OBSERVACOES',
-    'CEP', 'LOGRADOURO', 'NUMERO', 'COMPLEMENTO', 'BAIRRO', 'CIDADE', 'ESTADO'
+    'CEP', 'LOGRADOURO', 'NUMERO', 'COMPLEMENTO', 'BAIRRO', 'CIDADE', 'ESTADO',
+    // Auditoria catequética — Etapa 9b: padrinho ou madrinha de Crisma previsto
+    'PADRINHO_CRISMA_NOME', 'PADRINHO_CRISMA_TELEFONE', 'PADRINHO_CRISMA_DATA', 'PADRINHO_CRISMA_PAROQUIA'
   ];
   ligarMascarasEndereco('catequizando-CEP', 'catequizando-ESTADO');
   ligarMascaraCpf('catequizando-CPF');
@@ -5152,15 +5168,51 @@ function iniciarModulo_catequizandos() {
       // O campo de data só aceita AAAA-MM-DD; a lista traz data e hora (2014-05-03T03:00:00.000Z) e o campo ficava
       // vazio. Mesmo corte que o servidor já usa (DadosComplementaresService, CatequizandosService).
       if (campo === 'DATA_NASCIMENTO') v = String(v).slice(0, 10);
+      // Etapa 9b: data do padrinho/madrinha — texto 'aaaa-mm-dd' fica como está; Date da planilha vira o dia local
+      if (campo === 'PADRINHO_CRISMA_DATA') v = /^\d{4}-\d{2}-\d{2}$/.test(String(v)) ? String(v) : _diaIso(v);
       elemento.value = campo === 'CEP' ? mascararCep(v) : campo === 'CPF' ? mascararCpf(v) : v;
     });
     // o CPF já gravado nunca é recusado (igual ao servidor); só um CPF diferente é conferido
     document.getElementById('catequizando-CPF').dataset.cpfOriginal = registro ? String(registro.CPF || '').replace(/\D/g, '') : '';
     revalidarCpf('catequizando-CPF', false);
     ['BATIZADO', 'PRIMEIRA_EUCARISTIA', 'CONFIRMACAO'].forEach(function (campo) {
-      document.getElementById('catequizando-' + campo).checked = !!(registro && registro[campo] === 'SIM');
+      var caixa = document.getElementById('catequizando-' + campo);
+      caixa.checked = !!(registro && registro[campo] === 'SIM');
+      caixa.dataset.original = caixa.checked ? 'SIM' : 'NAO';
     });
+    sacramentosDoCadastro = null;
+    document.getElementById('catequizando-aviso-sacramento').style.display = 'none';
+    document.getElementById('catequizando-PADRINHO_CRISMA_DATA').max = _diaIso(new Date());
     modalCadastro.show();
+  }
+
+  // ---------- Etapa 9a: aviso ao desmarcar uma caixa de sacramento que tem registro detalhado ----------
+  var NOMES_CAIXA = { BATIZADO: 'Batismo', PRIMEIRA_EUCARISTIA: 'Primeira Eucaristia', CONFIRMACAO: 'Crisma' };
+  var TIPO_DA_CAIXA = { BATIZADO: 'BATISMO', PRIMEIRA_EUCARISTIA: 'PRIMEIRA_EUCARISTIA', CONFIRMACAO: 'CRISMA' };
+  var sacramentosDoCadastro = null; // registros ativos do catequizando aberto (lidos só quando alguém desmarca)
+
+  function _avisarCaixasSacramento() {
+    var aviso = document.getElementById('catequizando-aviso-sacramento');
+    var desmarcadas = Object.keys(NOMES_CAIXA).filter(function (c) {
+      var caixa = document.getElementById('catequizando-' + c);
+      return caixa.dataset.original === 'SIM' && !caixa.checked;
+    });
+    if (!desmarcadas.length || !idEmEdicao) { aviso.style.display = 'none'; return; }
+    var mostrar = function () {
+      var frases = desmarcadas.map(function (c) {
+        var r = (sacramentosDoCadastro || []).filter(function (s) { return s.TIPO === TIPO_DA_CAIXA[c]; })[0];
+        return r ? 'Existe registro de ' + NOMES_CAIXA[c] + ' em ' + formatarDataBR(r.DATA_SACRAMENTO) + '.' : null;
+      }).filter(Boolean);
+      aviso.innerHTML = frases.length
+        ? '<div class="alert alert-warning py-2 small mb-0">' + escapeHtml(frases.join(' ')) + ' Se salvar com a caixa desmarcada, o cadastro ficará diferente do registro.</div>'
+        : '';
+      aviso.style.display = frases.length ? 'block' : 'none';
+    };
+    if (sacramentosDoCadastro) { mostrar(); return; }
+    chamarApi('apiListarSacramentos', TOKEN, idEmEdicao).then(function (registros) {
+      sacramentosDoCadastro = registros.filter(function (s) { return s.STATUS === 'ATIVO'; });
+      mostrar();
+    }).catch(function () { /* sem a lista, não há aviso — o salvar continua normal */ });
   }
 
   function _salvarCadastro(evento) {
@@ -5409,7 +5461,8 @@ function iniciarModulo_catequizandos() {
       sacramentosAtivosCarregados = ativos;
       _atualizarAvisoBatismo();
       document.getElementById('tabela-sacramentos-corpo').innerHTML = ativos.map(function (s) {
-        var padrinhoMadrinha = s.NOME_PADRINHO ? escapeHtml(s.NOME_PADRINHO) + ' (padrinho)' : (s.NOME_MADRINHA ? escapeHtml(s.NOME_MADRINHA) + ' (madrinha)' : '-');
+        // Etapa 9b: padrinho OU madrinha num campo só; registros antigos com madrinha continuam aparecendo
+        var padrinhoMadrinha = s.NOME_PADRINHO ? escapeHtml(desescaparHtml(s.NOME_PADRINHO)) : (s.NOME_MADRINHA ? escapeHtml(desescaparHtml(s.NOME_MADRINHA)) : '-');
         return '<tr><td>' + escapeHtml(_rotulosSacramento[s.TIPO] || s.TIPO) + '</td>' +
           '<td>' + escapeHtml(formatarDataBR(s.DATA_SACRAMENTO)) + '</td>' +
           '<td>' + escapeHtml(s.LOCAL || '-') + '</td>' +
@@ -5422,6 +5475,13 @@ function iniciarModulo_catequizandos() {
   function _atualizarBlocoPadrinho() {
     var ehCrisma = document.getElementById('sacramento-TIPO').value === 'CRISMA';
     document.getElementById('sacramento-bloco-padrinho').style.display = ehCrisma ? 'block' : 'none';
+    // Etapa 9b: ao registrar a Crisma, o padrinho ou madrinha previsto no cadastro já vem preenchido (se o campo estiver vazio)
+    if (ehCrisma) {
+      var c = (todosCatequizandos || []).filter(function (x) { return x.ID === catequizandoSelecionadoSacramentos; })[0];
+      var nome = document.getElementById('sacramento-NOME_PADRINHO'), tel = document.getElementById('sacramento-TELEFONE_PADRINHO');
+      if (c && !nome.value) nome.value = desescaparHtml(c.PADRINHO_CRISMA_NOME || '');
+      if (c && !tel.value) tel.value = desescaparHtml(c.PADRINHO_CRISMA_TELEFONE || '');
+    }
   }
 
   function _salvarSacramento(evento) {
@@ -5436,10 +5496,9 @@ function iniciarModulo_catequizandos() {
       OBSERVACOES: document.getElementById('sacramento-OBSERVACOES').value
     };
     if (dados.TIPO === 'CRISMA') {
+      // Etapa 9b: um campo só para padrinho OU madrinha (guardado em NOME_PADRINHO/TELEFONE_PADRINHO)
       dados.NOME_PADRINHO = document.getElementById('sacramento-NOME_PADRINHO').value;
       dados.TELEFONE_PADRINHO = document.getElementById('sacramento-TELEFONE_PADRINHO').value;
-      dados.NOME_MADRINHA = document.getElementById('sacramento-NOME_MADRINHA').value;
-      dados.TELEFONE_MADRINHA = document.getElementById('sacramento-TELEFONE_MADRINHA').value;
     }
 
     chamarApi('apiRegistrarSacramento', TOKEN, dados)
@@ -6749,7 +6808,8 @@ function iniciarModulo_planejamento() {
     chamarApi('apiAbrirAvaliacao', TOKEN, encontroId).then(function (lista) {
       var corpo = document.getElementById('tabela-avaliacao-corpo');
       var opcoesEscala = ['', 'OTIMO', 'BOM', 'REGULAR', 'INSUFICIENTE'];
-      var rotulos = { '': '-', OTIMO: 'Ótimo', BOM: 'Bom', REGULAR: 'Regular', INSUFICIENTE: 'Insuficiente' };
+      // Auditoria catequética — Etapa 7: nomes de caminhada (os valores gravados continuam os mesmos)
+      var rotulos = { '': '-', OTIMO: 'Muito bem', BOM: 'Bem', REGULAR: 'Em desenvolvimento', INSUFICIENTE: 'Precisa de apoio' };
 
       // No celular a tabela vira cartões (classe tabela-cartoes): o nome fica no alto de cada cartão e cada campo leva o
       // rótulo (data-rotulo). Cada campo tem nome acessível com o critério e o catequizando (leitor de tela).
@@ -7501,6 +7561,10 @@ function iniciarModulo_meus_catequizandos() {
     if (chave === 'CEP') v = mascararCep(v);
     var id = 'dc-' + chave;
     var rot = '<label class="form-label" for="' + id + '">' + escapeHtml(rotulo) + '</label>';
+    if (tipo === 'data') { // Etapa 9b: data (não futura)
+      var hoje = new Date(); var max = hoje.getFullYear() + '-' + ('0' + (hoje.getMonth() + 1)).slice(-2) + '-' + ('0' + hoje.getDate()).slice(-2);
+      return '<div class="' + colunas + '">' + rot + '<input type="date" class="form-control" id="' + id + '" data-chave="' + chave + '" max="' + max + '" value="' + escapeHtml(v) + '"></div>';
+    }
     if (tipo === 'area') {
       return '<div class="' + colunas + '">' + rot + '<textarea class="form-control" id="' + id + '" data-chave="' + chave + '" rows="2" maxlength="500">' + escapeHtml(v) + '</textarea></div>';
     }
@@ -7517,7 +7581,7 @@ function iniciarModulo_meus_catequizandos() {
         '<label class="form-check-label" for="dc-' + k + '">' + { BATIZADO: 'Batismo', PRIMEIRA_EUCARISTIA: 'Primeira Eucaristia', CONFIRMACAO: 'Crisma' }[k] + '</label></div>';
     };
     var e = function (c, r, col, t) { return _campoEditavel(c, r, col, dados, t); };
-    return '<p class="text-muted small">Você pode alterar contato, endereço, sacramentos, saúde, emergência e observações. Os campos em cinza ficam com a secretaria.</p>' +
+    return '<p class="text-muted small">Você pode alterar contato, endereço, sacramentos, padrinho ou madrinha de Crisma, saúde, emergência e observações. Os campos em cinza ficam com a secretaria.</p>' +
       '<h6 class="text-muted">Dados pessoais</h6><div class="row g-2 mb-3">' +
       _campoLeitura('Nome', ro.NOME, 'col-md-8') + _campoLeitura('Data de nascimento', data, 'col-md-4') +
       _campoLeitura('Sexo', ro.SEXO, 'col-md-3') + _campoLeitura('CPF', ro.CPF, 'col-md-3') +
@@ -7526,7 +7590,13 @@ function iniciarModulo_meus_catequizandos() {
       e('CEP', 'CEP', 'col-md-3') + e('LOGRADOURO', 'Rua / logradouro', 'col-md-6') + e('NUMERO', 'Número', 'col-md-3') +
       e('COMPLEMENTO', 'Complemento', 'col-md-4') + e('BAIRRO', 'Bairro', 'col-md-3') + e('CIDADE', 'Cidade', 'col-md-3') + e('ESTADO', 'UF', 'col-md-2') + '</div>' +
       '<h6 class="text-muted">Responsável</h6><div class="row g-2 mb-3">' + _campoLeitura('Responsável', ro.RESPONSAVEL, 'col-md-12') + '</div>' +
-      '<h6 class="text-muted">Sacramentos já recebidos</h6><div class="row g-2 mb-3">' + marca('BATIZADO') + marca('PRIMEIRA_EUCARISTIA') + marca('CONFIRMACAO') + '</div>' +
+      '<h6 class="text-muted">Sacramentos já recebidos</h6><div class="row g-2 mb-3">' + marca('BATIZADO') + marca('PRIMEIRA_EUCARISTIA') + marca('CONFIRMACAO') +
+        '<div class="col-12" id="dc-aviso-sacramento" role="status" style="display:none;"></div></div>' + // Etapa 9a
+      // Auditoria catequética — Etapa 9b: padrinho ou madrinha de Crisma previsto (nada obrigatório)
+      '<h6 class="text-muted">Padrinho ou madrinha de Crisma (previsto)</h6><div class="row g-2 mb-3">' +
+      e('PADRINHO_CRISMA_NOME', 'Nome do padrinho ou madrinha', 'col-md-6') + e('PADRINHO_CRISMA_TELEFONE', 'Telefone', 'col-md-6') +
+      e('PADRINHO_CRISMA_DATA', 'Data da Crisma do padrinho ou madrinha', 'col-md-6', 'data') + e('PADRINHO_CRISMA_PAROQUIA', 'Paróquia onde foi crismado(a)', 'col-md-6') +
+      '<div class="col-12"><p class="text-muted small mb-0">Anotação da preparação. Não marca a Crisma como recebida.</p></div></div>' +
       '<h6 class="text-muted">Saúde e emergência</h6><div class="row g-2 mb-3">' +
       e('ALERGIAS', 'Alergias', 'col-md-4') + e('MEDICAMENTOS', 'Medicamentos de uso contínuo', 'col-md-4') + e('RESTRICOES', 'Restrições', 'col-md-4') +
       e('OBSERVACOES_MEDICAS', 'Outras observações médicas', 'col-12', 'area') + // Auditoria catequética — Etapa 5
@@ -7556,6 +7626,23 @@ function iniciarModulo_meus_catequizandos() {
       botaoSalvar.disabled = true;
       descartando = false;
       corpoModal.querySelectorAll('[data-chave]').forEach(function (el) { el.addEventListener(el.type === 'checkbox' ? 'change' : 'input', _atualizarBotao); });
+      // Etapa 9a: aviso ao desmarcar uma caixa que tem registro detalhado com data (a secretaria registrou)
+      var registrados = (dados.somenteLeitura && dados.somenteLeitura.SACRAMENTOS_REGISTRADOS) || [];
+      var tipoDa = { BATIZADO: 'BATISMO', PRIMEIRA_EUCARISTIA: 'PRIMEIRA_EUCARISTIA', CONFIRMACAO: 'CRISMA' };
+      var nomeDa = { BATIZADO: 'Batismo', PRIMEIRA_EUCARISTIA: 'Primeira Eucaristia', CONFIRMACAO: 'Crisma' };
+      var avisar = function () {
+        var frases = Object.keys(tipoDa).filter(function (k) {
+          var el = document.getElementById('dc-' + k);
+          return el && emEdicao && emEdicao.iniciais[k] === 'SIM' && !el.checked;
+        }).map(function (k) {
+          var r = registrados.filter(function (s) { return s.TIPO === tipoDa[k]; })[0];
+          return r ? 'Existe registro de ' + nomeDa[k] + (r.DATA ? ' em ' + r.DATA.split('-').reverse().join('/') : '') + '.' : null;
+        }).filter(Boolean);
+        var aviso = document.getElementById('dc-aviso-sacramento');
+        aviso.innerHTML = frases.length ? '<div class="alert alert-warning py-2 small mb-0">' + escapeHtml(frases.join(' ')) + ' Se salvar com a caixa desmarcada, o cadastro ficará diferente do registro.</div>' : '';
+        aviso.style.display = frases.length ? 'block' : 'none';
+      };
+      ['BATIZADO', 'PRIMEIRA_EUCARISTIA', 'CONFIRMACAO'].forEach(function (k) { var el = document.getElementById('dc-' + k); if (el) el.addEventListener('change', avisar); });
       modal.show();
     }).catch(function (erro) { exibirToast(erro.message, true); });
   }
