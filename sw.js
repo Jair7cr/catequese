@@ -13,7 +13,7 @@
  * config.js (endereço do servidor) é o único arquivo buscado primeiro na rede: ele é editado direto no GitHub e
  * não deve ficar preso numa versão antiga.
  */
-var VERSAO = '2026.10.29-951aba0abe';
+var VERSAO = '2026.10.29-da637cee0b';
 var CACHE = 'catequese-' + VERSAO;
 var ARQUIVOS = [
   "./",

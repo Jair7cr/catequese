@@ -2275,9 +2275,9 @@ details.cartao-modulo[open] > summary::after { content: "\f077"; }
                   <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
                 </div>
                 <div class="modal-body">
-                  <!-- Auditoria catequética — Etapa 2: link público de fotos suspenso; o Administrador confere e revoga os antigos -->
+                  <!-- Auditoria catequética — Etapa 2/10: link público só com confirmação de autorização de imagem; o Administrador confere e revoga -->
                   <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
-                    <p class="text-muted small mb-0 flex-grow-1">As fotos ficam visíveis só para a equipe, pelo sistema. O link público está suspenso até a paróquia definir a política de uso de imagem.</p>
+                    <p class="text-muted small mb-0 flex-grow-1">As fotos ficam visíveis só para a equipe, pelo sistema. Gere um link público apenas de foto com autorização de uso de imagem das pessoas que aparecem nela (ou dos responsáveis).</p>
                     <button type="button" class="btn btn-sm btn-outline-secondary" id="btn-verificar-links-galeria" style="display:none;"><i class="fa-solid fa-link-slash" aria-hidden="true"></i> Verificar links públicos</button>
                   </div>
                   <div id="galeria-resultado-links" class="small mb-2" role="status"></div>
@@ -7123,9 +7123,12 @@ function iniciarModulo_planejamento() {
             envolver +
             '<div class="small">' + legenda + '</div>' +
             '<div class="text-muted small">' + escapeHtml(formatarDataBR(item.DATA_EVENTO)) + '</div>' +
-            // Etapa 2: sem "compartilhar link"; foto que ainda tem link antigo ganha selo e "revogar" após a verificação
-            (item.TIPO === 'FOTO' && galeriaComLink[item.ID]
-              ? '<div class="small"><span class="badge bg-warning-subtle text-warning-emphasis">Link público ativo</span> ' +
+            // Etapa 10: "compartilhar link" volta (com confirmação de autorização de imagem); foto com link ativo
+            // (gerado agora ou achado pela verificação do Administrador) ganha selo e "revogar"
+            (item.TIPO === 'FOTO'
+              ? '<div class="small">' + (galeriaComLink[item.ID]
+                  ? '<span class="badge bg-warning-subtle text-warning-emphasis">Link público ativo</span> '
+                  : '<button class="btn btn-sm btn-link p-0 btn-compartilhar-galeria" data-id="' + escapeHtml(item.ID) + '">compartilhar link</button> · ') +
                 '<button class="btn btn-sm btn-link text-danger p-0 btn-revogar-galeria" data-id="' + escapeHtml(item.ID) + '">revogar</button></div>'
               : '') +
             (item.PODE_APAGAR ? '<button class="btn btn-sm btn-link text-danger p-0 btn-apagar-galeria" data-id="' + escapeHtml(item.ID) + '">apagar</button>' : '') +
@@ -7135,8 +7138,38 @@ function iniciarModulo_planejamento() {
         ligarLinksDeArquivoPrivado(container);
         carregarMiniaturasPrivadas(container);
 
-        // A foto é PRIVADA. Auditoria catequética — Etapa 2: gerar link público está suspenso; "revogar" só aparece
-        // nas fotos que a verificação do Administrador encontrou com link antigo.
+        // A foto é PRIVADA. Auditoria catequética — Etapa 10: o link público volta, foto a foto, depois de quem
+        // compartilha confirmar a autorização de uso de imagem (o servidor recusa sem essa confirmação).
+        container.querySelectorAll('.btn-compartilhar-galeria').forEach(function (b) {
+          b.addEventListener('click', function () {
+            // A janela de confirmação é reaproveitada para mostrar o link: se a resposta chegar enquanto ela ainda
+            // está fechando, a janela do link espera o fechamento terminar (senão o "Fechar" perde a ação).
+            var janela = document.getElementById('modal-confirmacao');
+            var fechando = false, mostrarDepois = null;
+            janela.addEventListener('hide.bs.modal', function () { fechando = true; }, { once: true });
+            janela.addEventListener('hidden.bs.modal', function () {
+              fechando = false;
+              if (mostrarDepois) mostrarDepois();
+            }, { once: true });
+            confirmarAcao('Antes de gerar o link, confirme: as pessoas que aparecem nesta foto (ou seus responsáveis, ' +
+              'no caso de menores) autorizaram o uso de imagem. Qualquer pessoa com o link vai poder ver a foto até você revogar.',
+              { titulo: 'Autorização de uso de imagem', textoConfirmar: 'Confirmo e gerar link' }).then(function (confirmado) {
+              if (!confirmado) return;
+              b.disabled = true;
+              chamarApi('apiDefinirCompartilhamentoGaleria', TOKEN, b.dataset.id, true, true)
+                .then(function (r) {
+                  galeriaComLink[b.dataset.id] = true;
+                  _carregarGaleria();
+                  var mostrarLink = function () {
+                    confirmarAcao('Link da foto: ' + r.url + '  (copie e envie; use "revogar" para desativar)', { titulo: 'Link ativado', textoConfirmar: 'Fechar' });
+                  };
+                  if (fechando) mostrarDepois = mostrarLink;
+                  else mostrarLink();
+                })
+                .catch(function (erro) { b.disabled = false; exibirToast(erro.message, true); });
+            });
+          });
+        });
         container.querySelectorAll('.btn-revogar-galeria').forEach(function (b) {
           b.addEventListener('click', function () {
             b.disabled = true;
