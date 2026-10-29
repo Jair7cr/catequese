@@ -1716,13 +1716,15 @@ details.cartao-modulo[open] > summary::after { content: "\f077"; }
                       <div class="col-md-4"><label class="form-label" for="catequizando-ALERGIAS">Alergias</label><input class="form-control" id="catequizando-ALERGIAS"></div>
                       <div class="col-md-4"><label class="form-label" for="catequizando-MEDICAMENTOS">Medicamentos de uso contínuo</label><input class="form-control" id="catequizando-MEDICAMENTOS"></div>
                       <div class="col-md-4"><label class="form-label" for="catequizando-RESTRICOES">Restrições</label><input class="form-control" id="catequizando-RESTRICOES"></div>
+                      <div class="col-12"><label class="form-label" for="catequizando-OBSERVACOES_MEDICAS">Outras observações médicas</label><textarea class="form-control" id="catequizando-OBSERVACOES_MEDICAS" rows="2"></textarea></div>
                       <div class="col-md-4"><label class="form-label" for="catequizando-CONTATO_EMERGENCIAL">Contato emergencial</label><input class="form-control" id="catequizando-CONTATO_EMERGENCIAL"></div>
                       <div class="col-md-4"><label class="form-label" for="catequizando-TELEFONE_EMERGENCIAL">Telefone emergencial</label><input class="form-control" id="catequizando-TELEFONE_EMERGENCIAL"></div>
                       <div class="col-md-4"><label class="form-label" for="catequizando-PARENTESCO_EMERGENCIAL">Parentesco</label><input class="form-control" id="catequizando-PARENTESCO_EMERGENCIAL"></div>
                     </div>
 
                     <h6 class="text-muted">Observações</h6>
-                    <textarea class="form-control" id="catequizando-OBSERVACOES" aria-label="Observações" rows="2"></textarea>
+                    <textarea class="form-control" id="catequizando-OBSERVACOES" aria-label="Observações" aria-describedby="catequizando-OBSERVACOES-ajuda" rows="2"></textarea>
+                    <p class="text-muted small mt-1 mb-0" id="catequizando-OBSERVACOES-ajuda">Informações de saúde vão em "Outras observações médicas", acima.</p>
                   </div>
                   <div class="modal-footer">
                     <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
@@ -5134,7 +5136,7 @@ function iniciarModulo_catequizandos() {
 
   var CAMPOS_CADASTRO = [
     'NOME', 'DATA_NASCIMENTO', 'SEXO', 'CPF', 'TELEFONE', 'WHATSAPP', 'EMAIL',
-    'RESPONSAVEL_ID', 'ALERGIAS', 'MEDICAMENTOS', 'RESTRICOES',
+    'RESPONSAVEL_ID', 'ALERGIAS', 'MEDICAMENTOS', 'RESTRICOES', 'OBSERVACOES_MEDICAS',
     'CONTATO_EMERGENCIAL', 'TELEFONE_EMERGENCIAL', 'PARENTESCO_EMERGENCIAL', 'OBSERVACOES',
     'CEP', 'LOGRADOURO', 'NUMERO', 'COMPLEMENTO', 'BAIRRO', 'CIDADE', 'ESTADO'
   ];
@@ -7527,8 +7529,10 @@ function iniciarModulo_meus_catequizandos() {
       '<h6 class="text-muted">Sacramentos já recebidos</h6><div class="row g-2 mb-3">' + marca('BATIZADO') + marca('PRIMEIRA_EUCARISTIA') + marca('CONFIRMACAO') + '</div>' +
       '<h6 class="text-muted">Saúde e emergência</h6><div class="row g-2 mb-3">' +
       e('ALERGIAS', 'Alergias', 'col-md-4') + e('MEDICAMENTOS', 'Medicamentos de uso contínuo', 'col-md-4') + e('RESTRICOES', 'Restrições', 'col-md-4') +
+      e('OBSERVACOES_MEDICAS', 'Outras observações médicas', 'col-12', 'area') + // Auditoria catequética — Etapa 5
       e('CONTATO_EMERGENCIAL', 'Contato emergencial', 'col-md-4') + e('TELEFONE_EMERGENCIAL', 'Telefone emergencial', 'col-md-4') + e('PARENTESCO_EMERGENCIAL', 'Parentesco', 'col-md-4') + '</div>' +
-      '<h6 class="text-muted">Observações</h6>' + e('OBSERVACOES', 'Observações', 'col-12', 'area').replace('<label class="form-label" for="dc-OBSERVACOES">Observações</label>', '<label class="visually-hidden" for="dc-OBSERVACOES">Observações</label>');
+      '<h6 class="text-muted">Observações</h6>' + e('OBSERVACOES', 'Observações', 'col-12', 'area').replace('<label class="form-label" for="dc-OBSERVACOES">Observações</label>', '<label class="visually-hidden" for="dc-OBSERVACOES">Observações</label>') +
+      '<p class="text-muted small mt-1 mb-0">Informações de saúde vão em "Outras observações médicas", acima.</p>';
   }
 
   function _lerFormulario() {
