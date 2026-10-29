@@ -1582,11 +1582,8 @@ details.cartao-modulo[open] > summary::after { content: "\f077"; }
               </div>
             </div>
             <div class="tab-pane fade cartao-modulo" id="painel-aba-forum">
-              <div id="painel-forum-lista" class="mb-3 lista-rolavel"></div>
-              <form id="painel-form-forum" class="d-flex gap-2">
-                <input type="text" class="form-control" id="painel-forum-texto" placeholder="Escreva um comentário..." required>
-                <button type="submit" class="btn btn-primario">Publicar</button>
-              </form>
+              <!-- Auditoria catequética — Etapa 8: partilhas propostas pelo catequista; o catequizando responde dentro do tema -->
+              <div id="painel-forum-lista" class="mb-3"></div>
             </div>
             <div class="tab-pane fade cartao-modulo" id="painel-aba-biblioteca">
               <div id="painel-biblioteca-lista"></div>
@@ -2228,11 +2225,8 @@ details.cartao-modulo[open] > summary::after { content: "\f077"; }
                   <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
                 </div>
                 <div class="modal-body">
-                  <div id="forum-lista-posts" class="mb-3 lista-rolavel"></div>
-                  <form id="form-forum-novo" class="d-flex gap-2">
-                    <input type="text" class="form-control" id="forum-texto-novo" placeholder="Escreva um comentário..." required>
-                    <button type="submit" class="btn btn-primario">Publicar</button>
-                  </form>
+                  <!-- Auditoria catequética — Etapa 8: fórum de partilha mediada (temas abertos pelo catequista) -->
+                  <div id="forum-lista-posts" class="mb-3"></div>
                 </div>
               </div>
             </div>
@@ -6464,6 +6458,115 @@ function iniciarModulo_modelos_mensagem() {
 
   <script>
 /**
+ * Auditoria catequética — Etapa 8 (29/10/2026): FÓRUM DE PARTILHA MEDIADA, componente único usado pelo Planejamento
+ * (equipe do grupo) e pelo "Meu Painel" (catequizando). O catequista abre o tema; os participantes respondem dentro do
+ * tema; o catequista encerra/reabre e modera. O servidor (ForumService.listarPorGrupo) diz o que cada um pode fazer.
+ * Uso: var recarregar = montarForumPartilha(elementoContainer, grupoId); recarregar();
+ */
+function montarForumPartilha(container, grupoId) {
+  var dataHora = function (v) { var d = new Date(v); return isNaN(d.getTime()) ? '' : d.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }); };
+  var texto = function (v) { return escapeHtml(desescaparHtml(v || '')); };
+
+  function _resposta(r) {
+    return '<div class="forum-resposta border-start ps-2 mb-2">' +
+      '<div class="d-flex justify-content-between gap-2"><strong class="small">' + texto(r.NOME_AUTOR) + '</strong><small class="text-muted">' + dataHora(r.DATA_CADASTRO) + '</small></div>' +
+      '<p class="mb-0" style="white-space: pre-wrap;">' + texto(r.TEXTO) + '</p>' +
+      (r.PODE_APAGAR ? '<button type="button" class="btn btn-sm btn-link text-danger p-0" data-forum-acao="apagar" data-id="' + escapeHtml(r.ID) + '">apagar</button>' : '') +
+      '</div>';
+  }
+
+  function _tema(t) {
+    var acoes = '';
+    if (t.PODE_ENCERRAR) {
+      acoes += t.ENCERRADO
+        ? '<button type="button" class="btn btn-sm btn-outline-secondary" data-forum-acao="reabrir" data-id="' + escapeHtml(t.ID) + '"><i class="fa-solid fa-lock-open" aria-hidden="true"></i> Reabrir</button>'
+        : '<button type="button" class="btn btn-sm btn-outline-secondary" data-forum-acao="encerrar" data-id="' + escapeHtml(t.ID) + '"><i class="fa-solid fa-lock" aria-hidden="true"></i> Encerrar</button>';
+    }
+    if (t.PODE_APAGAR) acoes += '<button type="button" class="btn btn-sm btn-link text-danger" data-forum-acao="apagar-tema" data-id="' + escapeHtml(t.ID) + '">apagar tema</button>';
+    return '<div class="forum-tema border rounded p-2 mb-3">' +
+      '<div class="d-flex flex-wrap justify-content-between align-items-start gap-2">' +
+        '<div><span class="fw-semibold">' + texto(t.TITULO) + '</span>' + (t.ENCERRADO ? ' <span class="badge bg-secondary-subtle text-secondary-emphasis">Encerrado</span>' : '') +
+        '<div class="text-muted small">Proposto por ' + texto(t.NOME_AUTOR) + ' · ' + dataHora(t.DATA_CADASTRO) + '</div></div>' +
+        (acoes ? '<div class="d-flex flex-wrap gap-1">' + acoes + '</div>' : '') +
+      '</div>' +
+      (desescaparHtml(t.TEXTO || '').trim() ? '<p class="mt-2 mb-2" style="white-space: pre-wrap;">' + texto(t.TEXTO) + '</p>' : '') +
+      '<div class="mt-2">' + (t.RESPOSTAS.map(_resposta).join('') || '<p class="text-muted small mb-2">Ainda sem respostas.</p>') + '</div>' +
+      (t.PODE_RESPONDER
+        ? '<form class="d-flex gap-2" data-forum-responder="' + escapeHtml(t.ID) + '"><input type="text" class="form-control form-control-sm" maxlength="2000" placeholder="Escreva sua resposta..." aria-label="Resposta ao tema ' + texto(t.TITULO) + '" required><button type="submit" class="btn btn-sm btn-primario">Responder</button></form>'
+        : '<p class="text-muted small mb-0"><i class="fa-solid fa-lock" aria-hidden="true"></i> Tema encerrado pelo catequista — só leitura.</p>') +
+      '</div>';
+  }
+
+  function _desenhar(d) {
+    var html = '';
+    if (d.podeCriarTema) {
+      html += '<form class="border rounded p-2 mb-3 bg-light" data-forum-novo-tema>' +
+        '<div class="fw-semibold mb-1">Propor um tema de partilha</div>' +
+        '<input type="text" class="form-control form-control-sm mb-2" maxlength="120" placeholder="Título do tema (ex.: O que é a Crisma para você?)" aria-label="Título do tema" required>' +
+        '<textarea class="form-control form-control-sm mb-2" rows="2" maxlength="2000" placeholder="Convite à partilha (opcional)" aria-label="Convite à partilha"></textarea>' +
+        '<button type="submit" class="btn btn-sm btn-primario">Abrir tema</button></form>';
+    }
+    html += d.temas.map(_tema).join('') ||
+      '<div class="estado-vazio"><i class="fa-solid fa-comments"></i><p class="titulo">Nenhum tema de partilha aberto</p><p class="subtitulo">' +
+      (d.podeCriarTema ? 'Proponha um tema para o grupo partilhar.' : 'Quando o catequista propuser uma partilha, ela aparece aqui.') + '</p></div>';
+    if (d.anteriores.length) {
+      html += '<details class="mt-2"><summary class="small text-muted">Mensagens anteriores aos temas (' + d.anteriores.length + ')</summary><div class="mt-2">' +
+        d.anteriores.map(_resposta).join('') + '</div></details>';
+    }
+    html += '<p class="text-muted small mt-2 mb-0">As mensagens do fórum são apagadas automaticamente 30 dias depois de publicadas.</p>';
+    container.innerHTML = html;
+  }
+
+  function recarregar() {
+    return chamarApi('apiListarForum', TOKEN, grupoId).then(_desenhar)
+      .catch(function (erro) { mostrarErroDeCarga(container, erro, recarregar); });
+  }
+
+  // Eventos por delegação (o conteúdo é redesenhado a cada carga); liga uma vez por container.
+  container.__forumGrupo = grupoId;
+  if (!container.__forumLigado) {
+    container.__forumLigado = true;
+    container.addEventListener('submit', function (ev) {
+      var form = ev.target, g = container.__forumGrupo;
+      if (form.hasAttribute('data-forum-novo-tema')) {
+        ev.preventDefault();
+        var botao = form.querySelector('button[type=submit]'); botao.disabled = true;
+        chamarApi('apiCriarTemaForum', TOKEN, g, form.querySelector('input').value, form.querySelector('textarea').value)
+          .then(function () { exibirToast('Tema de partilha aberto.'); container.__forumRecarregar(); })
+          .catch(function (erro) { botao.disabled = false; exibirToast(erro.message, true); });
+      } else if (form.hasAttribute('data-forum-responder')) {
+        ev.preventDefault();
+        var b = form.querySelector('button[type=submit]'); b.disabled = true;
+        chamarApi('apiEscreverForum', TOKEN, g, form.querySelector('input').value, form.getAttribute('data-forum-responder'))
+          .then(function () { container.__forumRecarregar(); })
+          .catch(function (erro) { b.disabled = false; exibirToast(erro.message, true); });
+      }
+    });
+    container.addEventListener('click', function (ev) {
+      var alvo = ev.target.closest('[data-forum-acao]');
+      if (!alvo) return;
+      var acao = alvo.getAttribute('data-forum-acao'), id = alvo.dataset.id;
+      if (acao === 'encerrar' || acao === 'reabrir') {
+        alvo.disabled = true;
+        chamarApi('apiEncerrarTemaForum', TOKEN, id, acao === 'encerrar')
+          .then(function (r) { exibirToast(acao === 'encerrar' ? 'Tema encerrado.' : 'Tema reaberto.'); container.__forumRecarregar(); })
+          .catch(function (erro) { alvo.disabled = false; exibirToast(erro.message, true); });
+      } else if (acao === 'apagar' || acao === 'apagar-tema') {
+        confirmarAcao(acao === 'apagar-tema' ? 'Apagar este tema? As respostas saem de vista junto com ele.' : 'Apagar esta mensagem?', { perigo: true, textoConfirmar: 'Apagar' })
+          .then(function (sim) {
+            if (!sim) return;
+            chamarApi('apiApagarForum', TOKEN, id).then(function () { container.__forumRecarregar(); })
+              .catch(function (erro) { exibirToast(erro.message, true); });
+          });
+      }
+    });
+  }
+  container.__forumRecarregar = recarregar;
+  return recarregar;
+}
+</script>
+<script>
+/**
  * js/modulos/planejamento.js
  * RN-013/RN-014. Visível para Catequista e Administrador (ver
  * App.html — este item de menu não tem a classe somente-admin).
@@ -6500,7 +6603,6 @@ function iniciarModulo_planejamento() {
   document.getElementById('btn-salvar-chamada').addEventListener('click', _salvarChamada);
   document.getElementById('btn-salvar-avaliacao').addEventListener('click', _salvarAvaliacao);
   document.getElementById('btn-abrir-forum').addEventListener('click', _abrirForum);
-  document.getElementById('form-forum-novo').addEventListener('submit', _publicarNoForum);
   document.getElementById('btn-abrir-biblioteca').addEventListener('click', _abrirBiblioteca);
   document.getElementById('biblioteca-TIPO').addEventListener('change', _atualizarCamposBiblioteca);
   document.getElementById('form-biblioteca-novo').addEventListener('submit', _enviarParaBiblioteca);
@@ -6859,46 +6961,9 @@ function iniciarModulo_planejamento() {
   function _abrirForum() {
     if (!grupoSelecionado) { exibirToast('Selecione um grupo primeiro.', false, 'aviso'); return; }
     document.getElementById('forum-nome-grupo').textContent = grupoSelecionado.NOME;
-    document.getElementById('forum-texto-novo').value = '';
-    _carregarForum();
+    // Etapa 8: fórum de partilha mediada (componente montarForumPartilha, no topo deste arquivo)
+    montarForumPartilha(document.getElementById('forum-lista-posts'), grupoSelecionado.ID)();
     modalForum.show();
-  }
-
-  function _carregarForum() {
-    chamarApi('apiListarForum', TOKEN, grupoSelecionado.ID).then(function (posts) {
-      var container = document.getElementById('forum-lista-posts');
-      container.innerHTML = posts.map(function (p) {
-        return '<div class="border-bottom pb-2 mb-2" data-post="' + escapeHtml(p.ID) + '">' +
-          '<div class="d-flex justify-content-between">' +
-          '<strong>' + escapeHtml(p.NOME_AUTOR) + '</strong>' +
-          '<small class="text-muted">' + new Date(p.DATA_CADASTRO).toLocaleString('pt-BR') + '</small>' +
-          '</div>' +
-          '<p class="mb-1">' + escapeHtml(p.TEXTO) + '</p>' +
-          (p.PODE_APAGAR ? '<button class="btn btn-sm btn-link text-danger p-0 btn-apagar-post" data-id="' + escapeHtml(p.ID) + '">apagar</button>' : '') +
-          '</div>';
-      }).join('') || '<div class="estado-vazio"><i class="fa-solid fa-comments"></i><p class="titulo">Nenhum comentário ainda</p><p class="subtitulo">Seja o primeiro a escrever.</p></div>';
-
-      container.querySelectorAll('.btn-apagar-post').forEach(function (b) {
-        b.addEventListener('click', function () {
-          confirmarAcao('Apagar este comentário?', { perigo: true, textoConfirmar: 'Apagar' }).then(function (confirmado) {
-            if (!confirmado) return;
-            chamarApi('apiApagarForum', TOKEN, b.dataset.id)
-              .then(function () { _carregarForum(); })
-              .catch(function (erro) { exibirToast(erro.message, true); });
-          });
-        });
-      });
-    }).catch(function (erro) { exibirToast(erro.message, true); });
-  }
-
-  function _publicarNoForum(evento) {
-    evento.preventDefault();
-    var campo = document.getElementById('forum-texto-novo');
-    comBotaoOcupado(botaoDeEnvio(evento), function () {
-      return chamarApi('apiEscreverForum', TOKEN, grupoSelecionado.ID, campo.value)
-        .then(function () { campo.value = ''; _carregarForum(); })
-        .catch(function (erro) { exibirToast(erro.message, true); });
-    });
   }
 
   function _abrirBiblioteca() {
@@ -7714,7 +7779,6 @@ function iniciarModulo_meu_painel() {
     if (perfil.GRUPO_ATUAL_ID) {
       _carregarForum();
       _carregarBiblioteca();
-      document.getElementById('painel-form-forum').addEventListener('submit', _publicarNoForum);
     } else {
       document.getElementById('painel-aba-forum').innerHTML = '<div class="estado-vazio"><i class="fa-solid fa-people-group"></i><p class="titulo">Sem grupo ativo no momento</p><p class="subtitulo">Fale com a coordenação para se matricular em um grupo.</p></div>';
       document.getElementById('painel-aba-biblioteca').innerHTML = '<div class="estado-vazio"><i class="fa-solid fa-people-group"></i><p class="titulo">Sem grupo ativo no momento</p></div>';
@@ -7757,39 +7821,9 @@ function iniciarModulo_meu_painel() {
     }).catch(function (erro) { mostrarErroDeCarga(document.getElementById('painel-tabela-frequencia'), erro, _carregarFrequencia, 4); }); // M06
   }
 
+  // Auditoria catequética — Etapa 8: fórum de partilha mediada (componente montarForumPartilha, em planejamento.js)
   function _carregarForum() {
-    chamarApi('apiListarForum', TOKEN, meuPerfil.GRUPO_ATUAL_ID).then(function (posts) {
-      var container = document.getElementById('painel-forum-lista');
-      container.innerHTML = posts.map(function (p) {
-        return '<div class="border-bottom pb-2 mb-2">' +
-          '<div class="d-flex justify-content-between">' +
-          '<strong>' + escapeHtml(p.NOME_AUTOR) + '</strong>' +
-          '<small class="text-muted">' + new Date(p.DATA_CADASTRO).toLocaleString('pt-BR') + '</small>' +
-          '</div>' +
-          '<p class="mb-1">' + escapeHtml(p.TEXTO) + '</p>' +
-          (p.PODE_APAGAR ? '<button class="btn btn-sm btn-link text-danger p-0 btn-painel-apagar-post" data-id="' + escapeHtml(p.ID) + '">apagar</button>' : '') +
-          '</div>';
-      }).join('') || '<div class="estado-vazio"><i class="fa-solid fa-comments"></i><p class="titulo">Nenhum comentário ainda</p><p class="subtitulo">Seja o primeiro a escrever.</p></div>';
-
-      container.querySelectorAll('.btn-painel-apagar-post').forEach(function (b) {
-        b.addEventListener('click', function () {
-          confirmarAcao('Apagar este comentário?', { perigo: true, textoConfirmar: 'Apagar' }).then(function (confirmado) {
-            if (!confirmado) return;
-            chamarApi('apiApagarForum', TOKEN, b.dataset.id).then(_carregarForum);
-          });
-        });
-      });
-    }).catch(function (erro) { mostrarErroDeCarga(document.getElementById('painel-forum-lista'), erro, _carregarForum); }); // M06
-  }
-
-  function _publicarNoForum(evento) {
-    evento.preventDefault();
-    var campo = document.getElementById('painel-forum-texto');
-    comBotaoOcupado(botaoDeEnvio(evento), function () {
-      return chamarApi('apiEscreverForum', TOKEN, meuPerfil.GRUPO_ATUAL_ID, campo.value)
-        .then(function () { campo.value = ''; _carregarForum(); })
-        .catch(function (erro) { exibirToast(erro.message, true); });
-    });
+    montarForumPartilha(document.getElementById('painel-forum-lista'), meuPerfil.GRUPO_ATUAL_ID)();
   }
 
   function _carregarBiblioteca() {
