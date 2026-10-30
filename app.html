@@ -1744,7 +1744,7 @@ details.cartao-modulo[open] > summary::after { content: "\f077"; }
             </div>
           </div>
 
-          <!-- Modal de Movimentação: Matrícula / Transferência / Promoção / Encerramento (RN-008 a RN-010) -->
+          <!-- Modal de Movimentação: Matrícula / Transferência / Encerramento (RN-008 e RN-009; promoção retirada em 29/10/2026) -->
           <div class="modal fade" id="modal-movimentacao" tabindex="-1" aria-labelledby="modal-movimentacao-titulo">
             <div class="modal-dialog">
               <div class="modal-content">
@@ -1769,18 +1769,6 @@ details.cartao-modulo[open] > summary::after { content: "\f077"; }
                       <input class="form-control" id="motivo-movimentacao">
                     </div>
 
-                    <div id="bloco-promocao" style="display:none;">
-                      <div class="mb-3">
-                        <label class="form-label" for="select-etapa-promocao">Etapa de destino</label>
-                        <select class="form-select" id="select-etapa-promocao"><option value="">Selecione...</option></select>
-                      </div>
-                      <div id="relatorio-pendencias"></div>
-                      <div class="mb-3">
-                        <label class="form-label" for="select-grupo-promocao">Grupo de destino (já na nova etapa)</label>
-                        <select class="form-select" id="select-grupo-promocao"><option value="">Selecione a etapa primeiro...</option></select>
-                      </div>
-                    </div>
-
                     <div class="mb-3" id="bloco-situacao-encerramento" style="display:none;">
                       <label class="form-label" for="select-situacao-encerramento">Situação final</label>
                       <select class="form-select" id="select-situacao-encerramento">
@@ -1788,6 +1776,8 @@ details.cartao-modulo[open] > summary::after { content: "\f077"; }
                         <option value="DESISTENTE">Desistente</option>
                         <option value="ENCERRADA">Encerrada (outro motivo)</option>
                       </select>
+                      <!-- Revisão do fluxo de promoção: informação para o discernimento ao concluir (não bloqueia) -->
+                      <div id="info-conclusao" class="small mt-2" role="status"></div>
                     </div>
                   </div>
                   <div class="modal-footer">
@@ -4398,7 +4388,7 @@ var SITUACOES_LEGIVEIS = {
   ENCERRADA: ['Encerrada', 'secondary', 'fa-circle-stop'],
   SEM_MATRICULA: ['Sem matrícula', 'warning', 'fa-circle-exclamation'],
   '(sem matrícula ativa)': ['Sem matrícula ativa', 'warning', 'fa-circle-exclamation'],
-  PROMOVIDA: ['Promovida', 'primary', 'fa-arrow-up'],
+  PROMOVIDA: ['Promovida (registro antigo)', 'secondary', 'fa-arrow-up'], // promoção retirada em 29/10/2026
   PENDENTE: ['Pendente', 'warning', 'fa-hourglass-half'],
   APROVADA: ['Aprovada', 'success', 'fa-check'],
   REJEITADA: ['Rejeitada', 'danger', 'fa-xmark'],
@@ -4893,7 +4883,7 @@ function _iniciarImagensDaParoquia() {
 /**
  * js/modulos/catequizandos.js
  * Não usa CrudGenerico: além de cadastrar/editar/inativar (RN-007),
- * tem o fluxo de Matrícula/Transferência/Promoção (RN-008 a RN-010),
+ * tem o fluxo de Matrícula/Transferência/Encerramento (RN-008 e RN-009; a promoção de etapa foi retirada em 29/10/2026),
  * que não é um CRUD simples.
  */
 function iniciarModulo_catequizandos() {
@@ -4959,7 +4949,7 @@ function iniciarModulo_catequizandos() {
 
   document.getElementById('select-tipo-movimentacao').addEventListener('change', _atualizarFormularioMovimentacao);
   document.getElementById('form-movimentacao').addEventListener('submit', _executarMovimentacao);
-  document.getElementById('select-etapa-promocao').addEventListener('change', _verificarPromocaoNaTela);
+  document.getElementById('select-situacao-encerramento').addEventListener('change', _mostrarInfoConclusao);
   document.getElementById('btn-gerar-whatsapp').addEventListener('click', _gerarPreviaWhatsApp);
   document.getElementById('sacramento-TIPO').addEventListener('change', _atualizarBlocoPadrinho);
   document.getElementById('sacramento-TIPO').addEventListener('change', _atualizarAvisoBatismo);
@@ -4984,7 +4974,6 @@ function iniciarModulo_catequizandos() {
 
     _preencherSelect('catequizando-RESPONSAVEL_ID', responsaveisCache, 'ID', 'NOME');
     _preencherSelect('select-grupo-movimentacao', gruposCache, 'ID', 'NOME');
-    _preencherSelect('select-etapa-promocao', etapasCache, 'ID', 'NOME');
 
     _carregar();
   });
@@ -5071,7 +5060,7 @@ function iniciarModulo_catequizandos() {
           '<td data-rotulo="Situação">' + seloSituacao(c.SITUACAO_MATRICULA) + '</td>' +
           '<td class="text-end"><div class="acoes-linha">' +
           '<button type="button" class="btn btn-sm btn-editar btn-acao-rotulada" data-id="' + id + '" title="Editar cadastro"><i class="fa-solid fa-pen" aria-hidden="true"></i> Editar</button>' +
-          '<button type="button" class="btn btn-sm btn-movimentar btn-acao-rotulada" data-id="' + id + '" data-situacao="' + escapeHtml(c.SITUACAO_MATRICULA) + '" title="Matricular, transferir, promover ou encerrar"><i class="fa-solid fa-right-left" aria-hidden="true"></i> Movimentar</button>' +
+          '<button type="button" class="btn btn-sm btn-movimentar btn-acao-rotulada" data-id="' + id + '" data-situacao="' + escapeHtml(c.SITUACAO_MATRICULA) + '" title="Matricular, transferir ou encerrar"><i class="fa-solid fa-right-left" aria-hidden="true"></i> Movimentar</button>' +
           '<div class="dropdown">' +
           '<button type="button" class="btn-mais-acoes" data-bs-toggle="dropdown" data-bs-popper-config=\'{"strategy":"fixed"}\' aria-expanded="false" aria-label="Mais ações para ' + nome + '" title="Mais ações"><i class="fa-solid fa-ellipsis" aria-hidden="true"></i></button>' +
           '<ul class="dropdown-menu dropdown-menu-end menu-acoes">' + menu + '</ul>' +
@@ -5309,7 +5298,7 @@ function iniciarModulo_catequizandos() {
     });
   }
 
-  // ---------- Matrícula / Transferência / Promoção (RN-008 a RN-010) ----------
+  // ---------- Matrícula / Transferência / Encerramento (RN-008 e RN-009; promoção retirada em 29/10/2026) ----------
 
   function _abrirMovimentacao(catequizandoId, situacaoAtual) {
     idEmMovimentacao = catequizandoId;
@@ -5317,9 +5306,8 @@ function iniciarModulo_catequizandos() {
     var temMatriculaAtiva = situacaoAtual === 'ATIVA';
 
     select.innerHTML =
-      (!temMatriculaAtiva ? '<option value="matricular">Matricular (primeira vez)</option>' : '') +
+      (!temMatriculaAtiva ? '<option value="matricular">Matricular em um grupo</option>' : '') +
       (temMatriculaAtiva ? '<option value="transferir">Transferir de grupo</option>' : '') +
-      (temMatriculaAtiva ? '<option value="promover">Promover de etapa</option>' : '') +
       (temMatriculaAtiva ? '<option value="encerrar">Encerrar matrícula (conclusão/desistência)</option>' : '');
 
     _atualizarFormularioMovimentacao();
@@ -5332,45 +5320,37 @@ function iniciarModulo_catequizandos() {
       (tipo === 'matricular' || tipo === 'transferir') ? 'block' : 'none';
     document.getElementById('bloco-motivo-movimentacao').style.display =
       (tipo === 'transferir' || tipo === 'encerrar') ? 'block' : 'none';
-    document.getElementById('bloco-promocao').style.display = (tipo === 'promover') ? 'block' : 'none';
     document.getElementById('bloco-situacao-encerramento').style.display = (tipo === 'encerrar') ? 'block' : 'none';
-    document.getElementById('relatorio-pendencias').innerHTML = '';
-    document.getElementById('select-grupo-promocao').innerHTML = '<option value="">Selecione a etapa primeiro...</option>';
+    _mostrarInfoConclusao();
   }
 
-  function _verificarPromocaoNaTela() {
-    var novaEtapaId = document.getElementById('select-etapa-promocao').value;
-    var containerRelatorio = document.getElementById('relatorio-pendencias');
-    var selectGrupoPromocao = document.getElementById('select-grupo-promocao');
-    containerRelatorio.innerHTML = '';
-    selectGrupoPromocao.innerHTML = '<option value="">Selecione...</option>';
-    if (!novaEtapaId) return;
-
-    chamarApi('apiVerificarPromocao', TOKEN, idEmMovimentacao, novaEtapaId).then(function (relatorio) {
-      containerRelatorio.innerHTML = '<div class="alert alert-warning py-2 mb-2"><strong>Pendências a confirmar:</strong><ul class="mb-0">' +
-        relatorio.pendencias.map(function (p) { return '<li>' + escapeHtml(p) + '</li>'; }).join('') +
-        '</ul></div>';
-
-      var gruposDaEtapa = gruposCache.filter(function (g) { return g.ETAPA_ID === novaEtapaId; });
-      gruposDaEtapa.forEach(function (g) {
-        var el = document.createElement('option');
-        el.value = g.ID;
-        el.textContent = g.NOME;
-        selectGrupoPromocao.appendChild(el);
-      });
-      if (gruposDaEtapa.length === 0) {
-        containerRelatorio.innerHTML += '<div class="alert alert-danger py-2">Não existe grupo cadastrado para esta etapa ainda.</div>';
-      }
-    });
+  /**
+   * Revisão do fluxo de promoção (29/10/2026): ao encerrar como Concluída, mostra a frequência nesta matrícula e a
+   * "Frequência de referência (%)" da etapa — só informação para o discernimento, não bloqueia.
+   */
+  function _mostrarInfoConclusao() {
+    var caixa = document.getElementById('info-conclusao');
+    var tipo = document.getElementById('select-tipo-movimentacao').value;
+    caixa.innerHTML = '';
+    if (tipo !== 'encerrar' || document.getElementById('select-situacao-encerramento').value !== 'CONCLUIDA') return;
+    var pedido = idEmMovimentacao;
+    caixa.textContent = 'Consultando a frequência...';
+    chamarApi('apiInformacoesConclusao', TOKEN, pedido).then(function (info) {
+      if (pedido !== idEmMovimentacao || document.getElementById('select-situacao-encerramento').value !== 'CONCLUIDA' ||
+          document.getElementById('select-tipo-movimentacao').value !== 'encerrar') return;
+      var frase = info.percentual === null
+        ? 'Ainda não há encontros realizados nesta matrícula para calcular a frequência.'
+        : 'Frequência nesta matrícula: ' + info.percentual + '%' + (info.referencia !== null ? ' (referência da etapa: ' + info.referencia + '%).' : '.');
+      caixa.innerHTML = '<div class="alert alert-info py-2 mb-0"><strong>Para o discernimento:</strong> ' + escapeHtml(frase) +
+        ' <span class="d-block text-muted">É só uma informação; a decisão de concluir é da equipe.</span></div>';
+    }).catch(function () { caixa.innerHTML = ''; });
   }
 
   function _executarMovimentacao(evento) {
     evento.preventDefault();
     var tipo = document.getElementById('select-tipo-movimentacao').value;
 
-    var confirmacaoNecessaria = tipo === 'promover'
-      ? confirmarAcao('Confirma a promoção mesmo com as pendências listadas acima?', { textoConfirmar: 'Confirmar promoção' })
-      : Promise.resolve(true);
+    var confirmacaoNecessaria = Promise.resolve(true);
 
     confirmacaoNecessaria.then(function (confirmado) {
       if (!confirmado) return;
@@ -5382,8 +5362,6 @@ function iniciarModulo_catequizandos() {
         promessa = chamarApi('apiTransferir', TOKEN, idEmMovimentacao,
           document.getElementById('select-grupo-movimentacao').value,
           document.getElementById('motivo-movimentacao').value);
-      } else if (tipo === 'promover') {
-        promessa = chamarApi('apiConfirmarPromocao', TOKEN, idEmMovimentacao, document.getElementById('select-grupo-promocao').value);
       } else if (tipo === 'encerrar') {
         promessa = chamarApi('apiEncerrarMatricula', TOKEN, idEmMovimentacao,
           document.getElementById('select-situacao-encerramento').value,
@@ -5665,8 +5643,9 @@ function iniciarModulo_etapas() {
       { nome: 'IDADE_MINIMA', label: 'Idade mínima', tipo: 'numero', obrigatorio: true },
       { nome: 'IDADE_MAXIMA', label: 'Idade máxima', tipo: 'numero', obrigatorio: true },
       { nome: 'DURACAO', label: 'Duração', tipo: 'texto', obrigatorio: true },
-      { nome: 'CRITERIO_APROVACAO', label: 'Critério de aprovação', tipo: 'textarea', naListagem: false },
-      { nome: 'CRITERIO_FREQUENCIA', label: 'Frequência mínima (%)', tipo: 'numero', naListagem: false }
+      // Revisão do fluxo de promoção (29/10/2026): "Critério de aprovação" saiu da tela (o que está gravado fica na
+      // planilha); a frequência virou só referência, mostrada ao encerrar como Concluída
+      { nome: 'CRITERIO_FREQUENCIA', label: 'Frequência de referência (%)', tipo: 'numero', naListagem: false }
     ],
     apiListar: function () { return chamarApi('apiListarEtapas', TOKEN); },
     apiSalvar: function (id, dados) { return chamarApi('apiSalvarEtapa', TOKEN, id, dados); },
