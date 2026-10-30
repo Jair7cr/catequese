@@ -1772,8 +1772,8 @@ details.cartao-modulo[open] > summary::after { content: "\f077"; }
                     <div class="mb-3" id="bloco-situacao-encerramento" style="display:none;">
                       <label class="form-label" for="select-situacao-encerramento">Situação final</label>
                       <select class="form-select" id="select-situacao-encerramento">
-                        <option value="CONCLUIDA">Concluída</option>
-                        <option value="DESISTENTE">Desistente</option>
+                        <option value="CONCLUIDA">Etapa concluída</option>
+                        <option value="DESISTENTE">Afastado</option>
                         <option value="ENCERRADA">Encerrada (outro motivo)</option>
                       </select>
                       <!-- Revisão do fluxo de promoção: informação para o discernimento ao concluir (não bloqueia) -->
@@ -2191,7 +2191,7 @@ details.cartao-modulo[open] > summary::after { content: "\f077"; }
                   <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
                 </div>
                 <div class="modal-body">
-                  <p class="text-muted small mb-2">Uso opcional, para seu acompanhamento. Não é nota e não conta para a promoção.</p>
+                  <p class="text-muted small mb-2">Uso opcional, para seu acompanhamento. Não é nota e não decide a conclusão da etapa.</p>
                   <div class="table-responsive" tabindex="0">
                     <table class="table table-sm align-middle tabela-cartoes tabela-avaliacao">
                       <thead><tr><th scope="col">Catequizando</th><th scope="col">Participação</th><th scope="col">Comportamento</th><th scope="col">Compromissos</th><th scope="col">Observações</th></tr></thead>
@@ -4382,9 +4382,9 @@ function ListaPaginada(opcoes) {
 /** Rótulo legível para situações gravadas como código (CONCLUIDA → "Concluída"), com ícone e cor do selo. */
 var SITUACOES_LEGIVEIS = {
   ATIVA: ['Ativa', 'success', 'fa-check'],
-  CONCLUIDA: ['Concluída', 'primary', 'fa-award'],
+  CONCLUIDA: ['Etapa concluída', 'primary', 'fa-award'], // Etapa 11 (linguagem): só o rótulo; o dado continua CONCLUIDA
   TRANSFERIDA: ['Transferida', 'secondary', 'fa-right-left'],
-  DESISTENTE: ['Desistente', 'secondary', 'fa-user-xmark'],
+  DESISTENTE: ['Afastado', 'secondary', 'fa-user-xmark'], // Etapa 11 (linguagem): só o rótulo; o dado continua DESISTENTE
   ENCERRADA: ['Encerrada', 'secondary', 'fa-circle-stop'],
   SEM_MATRICULA: ['Sem matrícula', 'warning', 'fa-circle-exclamation'],
   '(sem matrícula ativa)': ['Sem matrícula ativa', 'warning', 'fa-circle-exclamation'],
@@ -5308,7 +5308,7 @@ function iniciarModulo_catequizandos() {
     select.innerHTML =
       (!temMatriculaAtiva ? '<option value="matricular">Matricular em um grupo</option>' : '') +
       (temMatriculaAtiva ? '<option value="transferir">Transferir de grupo</option>' : '') +
-      (temMatriculaAtiva ? '<option value="encerrar">Encerrar matrícula (conclusão/desistência)</option>' : '');
+      (temMatriculaAtiva ? '<option value="encerrar">Encerrar matrícula (conclusão/afastamento)</option>' : '');
 
     _atualizarFormularioMovimentacao();
     modalMovimentacao.show();
