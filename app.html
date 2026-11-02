@@ -1226,6 +1226,56 @@ details.cartao-modulo[open] > summary::after { content: "\f077"; }
 
 /* ---------- Responsivo ---------- */
 
+/* Refinamento de UI — Passo 1 (02/11/2026): em telas médias as tabelas de Encontros (Planejamento) e de Catequizandos
+   não cabiam e os botões de ação ficavam escondidos atrás de uma rolagem lateral sem aviso. Nessa faixa elas usam o
+   mesmo modo cartão do celular (as regras do celular, em max-width: 768px, não mudaram). */
+@media (min-width: 1280px) {
+  /* Planejamento: os botões de ação quebram linha dentro da coluna "Ações" em vez de sair da tela. */
+  #tabela-encontros .acoes-linha { flex-wrap: wrap; }
+}
+@media (min-width: 769px) and (max-width: 1279.98px) {
+  #tabela-encontros thead { display: none; }
+  #tabela-encontros, #tabela-encontros tbody, #tabela-encontros tr, #tabela-encontros td { display: block; width: 100%; }
+  #tabela-encontros tr { border: 1px solid var(--cor-borda); border-radius: var(--raio-padrao); padding: 10px 14px; margin-bottom: 10px; background: var(--cor-superficie); }
+  #tabela-encontros td { border: 0 !important; padding: 4px 0 !important; text-align: left !important; white-space: normal !important; }
+  #tabela-encontros td[data-rotulo]::before { content: attr(data-rotulo) ": "; color: var(--cor-texto-suave); font-size: 0.8125rem; }
+  #tabela-encontros td:first-child { font-size: 1rem; }
+  #tabela-encontros td.text-end { padding-top: 8px !important; }
+  #tabela-encontros td[data-rotulo="Avaliação esperada"] { display: flex !important; align-items: center; gap: 8px; }
+  #tabela-encontros .acoes-linha { justify-content: flex-start; flex-wrap: wrap; }
+  #tabela-encontros tr:has(.estado-vazio) { border: 0; background: transparent; }
+  .table-responsive:has(#tabela-encontros) { overflow: visible; }
+}
+@media (min-width: 769px) and (max-width: 1279.98px) {
+  #tabela-catequizandos thead { display: none; }
+  #tabela-catequizandos, #tabela-catequizandos tbody, #tabela-catequizandos tr, #tabela-catequizandos td { display: block; width: 100%; }
+  #tabela-catequizandos tr { border: 1px solid var(--cor-borda); border-radius: var(--raio-padrao); padding: 10px 14px; margin-bottom: 10px; background: var(--cor-superficie); }
+  #tabela-catequizandos td { border: 0 !important; padding: 4px 0 !important; text-align: left !important; white-space: normal !important; }
+  #tabela-catequizandos td[data-rotulo]::before { content: attr(data-rotulo) ": "; color: var(--cor-texto-suave); font-size: 0.8125rem; }
+  #tabela-catequizandos td:first-child { font-size: 1rem; }
+  #tabela-catequizandos td.text-end { padding-top: 8px !important; }
+  #tabela-catequizandos .acoes-linha { justify-content: flex-start; flex-wrap: wrap; }
+  #tabela-catequizandos tr:has(.estado-vazio) { border: 0; background: transparent; }
+  .table-responsive:has(#tabela-catequizandos) { overflow: visible; }
+}
+/* Refinamento de UI — Passo 3 (02/11/2026): nos cartões de indicador do computador, o rótulo reserva a altura de duas
+   linhas, para os números de cartões vizinhos ficarem na mesma altura ("Catequizandos ativos" quebra; "Catequistas" não). */
+@media (min-width: 769px) {
+  .stat-mini-topo { min-height: calc(2 * 1.55 * 0.875rem); }
+}
+/* Refinamento de UI — Passo 3: no celular, a chave "Avaliação esperada" fica na mesma linha do rótulo (mesmo padrão
+   da tela de avaliação, .tabela-avaliacao). */
+@media (max-width: 768px) {
+  #tabela-encontros td[data-rotulo="Avaliação esperada"] { display: flex !important; align-items: center; gap: 8px; }
+}
+/* Refinamento de UI — Passo 2 (02/11/2026): de 1280 a 1365 px a tabela de Catequizandos não cabia (7 px a mais) e o
+   nome quebrava em várias linhas; "Editar" e "Movimentar" ficam só com ícone nessa faixa. O texto continua no botão
+   (leitor de tela) e a dica ao passar o mouse (title) mostra a ação. Abaixo de 1280 px é cartão; de 1366 px, com texto. */
+@media (min-width: 1280px) and (max-width: 1365.98px) {
+  #tabela-catequizandos .acoes-linha .btn-acao-rotulada { font-size: 0 !important; gap: 0 !important; width: 40px !important; padding: 0 !important; }
+  #tabela-catequizandos .acoes-linha .btn-acao-rotulada i { font-size: 0.95rem; }
+}
+
 @media (max-width: 575.98px) {
   /* "Precisa de atenção": a ação desce para baixo do texto em telas estreitas. */
   .lista-atencao .item-atencao { flex-wrap: wrap; row-gap: 4px; }
@@ -2847,7 +2897,7 @@ details.cartao-modulo[open] > summary::after { content: "\f077"; }
 
   <script src="vendor/bootstrap/bootstrap.bundle.min.js"></script>
   <script src="vendor/chartjs/chart.umd.js"></script>
-  <script>var VERSAO_APP = '2026.10.29';</script>
+  <script>var VERSAO_APP = '2026.11.02';</script>
   <script src="config.js"></script>
   <script src="js/pwa-inicio.js"></script>
   <script>
