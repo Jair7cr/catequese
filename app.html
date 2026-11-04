@@ -1760,14 +1760,17 @@ details.cartao-modulo[open] > summary::after { content: "\f077"; }
                       <div class="col-12" id="catequizando-aviso-sacramento" role="status" style="display:none;"></div>
                     </div>
 
-                    <!-- Auditoria catequética — Etapa 9b: padrinho ou madrinha de Crisma previsto (nada obrigatório) -->
+                    <!-- Auditoria catequética — Etapa 9b: padrinho ou madrinha de Crisma previsto (nada obrigatório).
+                         04/11/2026: só para quem está numa etapa de Crisma; fora dela, só leitura se já houver anotação. -->
+                    <div id="catequizando-bloco-padrinho" hidden>
                     <h6 class="text-muted">Padrinho ou madrinha de Crisma (previsto)</h6>
                     <div class="row g-2 mb-3">
                       <div class="col-md-6"><label class="form-label" for="catequizando-PADRINHO_CRISMA_NOME">Nome do padrinho ou madrinha</label><input class="form-control" id="catequizando-PADRINHO_CRISMA_NOME"></div>
                       <div class="col-md-6"><label class="form-label" for="catequizando-PADRINHO_CRISMA_TELEFONE">Telefone</label><input class="form-control" id="catequizando-PADRINHO_CRISMA_TELEFONE" type="tel"></div>
                       <div class="col-md-6"><label class="form-label" for="catequizando-PADRINHO_CRISMA_DATA">Data da Crisma do padrinho ou madrinha</label><input class="form-control" id="catequizando-PADRINHO_CRISMA_DATA" type="date"></div>
                       <div class="col-md-6"><label class="form-label" for="catequizando-PADRINHO_CRISMA_PAROQUIA">Paróquia onde foi crismado(a)</label><input class="form-control" id="catequizando-PADRINHO_CRISMA_PAROQUIA"></div>
-                      <div class="col-12"><p class="text-muted small mb-0">Anotação da preparação. Não marca a Crisma como recebida.</p></div>
+                      <div class="col-12"><p class="text-muted small mb-0" id="catequizando-nota-padrinho">Anotação da preparação. Não marca a Crisma como recebida.</p></div>
+                    </div>
                     </div>
 
                     <h6 class="text-muted">Saúde e emergência</h6>
@@ -2897,7 +2900,7 @@ details.cartao-modulo[open] > summary::after { content: "\f077"; }
 
   <script src="vendor/bootstrap/bootstrap.bundle.min.js"></script>
   <script src="vendor/chartjs/chart.umd.js"></script>
-  <script>var VERSAO_APP = '2026.11.02';</script>
+  <script>var VERSAO_APP = '2026.11.04';</script>
   <script src="config.js"></script>
   <script src="js/pwa-inicio.js"></script>
   <script>
@@ -5216,7 +5219,28 @@ function iniciarModulo_catequizandos() {
     sacramentosDoCadastro = null;
     document.getElementById('catequizando-aviso-sacramento').style.display = 'none';
     document.getElementById('catequizando-PADRINHO_CRISMA_DATA').max = _diaIso(new Date());
+    _ajustarBlocoPadrinho(registro);
     modalCadastro.show();
+  }
+
+  /**
+   * 04/11/2026: o padrinho ou madrinha de Crisma só aparece para quem está numa etapa de Crisma (situação calculada no
+   * servidor: EDITAVEL); fora dela, só para leitura se já houver anotação (LEITURA); senão, não aparece (OCULTO).
+   * Cadastro novo não tem matrícula: OCULTO.
+   */
+  var CAMPOS_PADRINHO = ['PADRINHO_CRISMA_NOME', 'PADRINHO_CRISMA_TELEFONE', 'PADRINHO_CRISMA_DATA', 'PADRINHO_CRISMA_PAROQUIA'];
+  var situacaoPadrinhoAberta = 'OCULTO';
+  function _ajustarBlocoPadrinho(registro) {
+    situacaoPadrinhoAberta = (registro && registro.PADRINHO_CRISMA_SITUACAO) || 'OCULTO';
+    document.getElementById('catequizando-bloco-padrinho').hidden = situacaoPadrinhoAberta === 'OCULTO';
+    CAMPOS_PADRINHO.forEach(function (campo) {
+      var el = document.getElementById('catequizando-' + campo);
+      el.readOnly = situacaoPadrinhoAberta !== 'EDITAVEL';
+      if (el.readOnly) el.setAttribute('aria-readonly', 'true'); else el.removeAttribute('aria-readonly');
+    });
+    document.getElementById('catequizando-nota-padrinho').textContent = situacaoPadrinhoAberta === 'LEITURA'
+      ? 'Anotado durante a preparação para a Crisma. Só leitura: o catequizando não está numa etapa de Crisma.'
+      : 'Anotação da preparação. Não marca a Crisma como recebida.';
   }
 
   // ---------- Etapa 9a: aviso ao desmarcar uma caixa de sacramento que tem registro detalhado ----------
@@ -5252,6 +5276,8 @@ function iniciarModulo_catequizandos() {
     evento.preventDefault();
     var dados = {};
     CAMPOS_CADASTRO.forEach(function (campo) {
+      // 04/11/2026: o padrinho só é enviado quando o bloco está editável (etapa de Crisma)
+      if (CAMPOS_PADRINHO.indexOf(campo) !== -1 && situacaoPadrinhoAberta !== 'EDITAVEL') return;
       dados[campo] = document.getElementById('catequizando-' + campo).value;
     });
     dados.CPF = dados.CPF.replace(/\D/g, ''); // o servidor também normaliza; vai só com os números
@@ -7708,7 +7734,7 @@ function iniciarModulo_meus_catequizandos() {
         '<label class="form-check-label" for="dc-' + k + '">' + { BATIZADO: 'Batismo', PRIMEIRA_EUCARISTIA: 'Primeira Eucaristia', CONFIRMACAO: 'Crisma' }[k] + '</label></div>';
     };
     var e = function (c, r, col, t) { return _campoEditavel(c, r, col, dados, t); };
-    return '<p class="text-muted small">Você pode alterar contato, endereço, sacramentos, padrinho ou madrinha de Crisma, saúde, emergência e observações. Os campos em cinza ficam com a secretaria.</p>' +
+    return '<p class="text-muted small">Você pode alterar contato, endereço, sacramentos, padrinho ou madrinha de Crisma (nas etapas de Crisma), saúde, emergência e observações. Os campos em cinza ficam com a secretaria.</p>' +
       '<h6 class="text-muted">Dados pessoais</h6><div class="row g-2 mb-3">' +
       _campoLeitura('Nome', ro.NOME, 'col-md-8') + _campoLeitura('Data de nascimento', data, 'col-md-4') +
       _campoLeitura('Sexo', ro.SEXO, 'col-md-3') + _campoLeitura('CPF', ro.CPF, 'col-md-3') +
@@ -7719,17 +7745,32 @@ function iniciarModulo_meus_catequizandos() {
       '<h6 class="text-muted">Responsável</h6><div class="row g-2 mb-3">' + _campoLeitura('Responsável', ro.RESPONSAVEL, 'col-md-12') + '</div>' +
       '<h6 class="text-muted">Sacramentos já recebidos</h6><div class="row g-2 mb-3">' + marca('BATIZADO') + marca('PRIMEIRA_EUCARISTIA') + marca('CONFIRMACAO') +
         '<div class="col-12" id="dc-aviso-sacramento" role="status" style="display:none;"></div></div>' + // Etapa 9a
-      // Auditoria catequética — Etapa 9b: padrinho ou madrinha de Crisma previsto (nada obrigatório)
-      '<h6 class="text-muted">Padrinho ou madrinha de Crisma (previsto)</h6><div class="row g-2 mb-3">' +
-      e('PADRINHO_CRISMA_NOME', 'Nome do padrinho ou madrinha', 'col-md-6') + e('PADRINHO_CRISMA_TELEFONE', 'Telefone', 'col-md-6') +
-      e('PADRINHO_CRISMA_DATA', 'Data da Crisma do padrinho ou madrinha', 'col-md-6', 'data') + e('PADRINHO_CRISMA_PAROQUIA', 'Paróquia onde foi crismado(a)', 'col-md-6') +
-      '<div class="col-12"><p class="text-muted small mb-0">Anotação da preparação. Não marca a Crisma como recebida.</p></div></div>' +
+      // Auditoria catequética — Etapa 9b: padrinho ou madrinha de Crisma previsto (nada obrigatório).
+      // 04/11/2026: só para quem está numa etapa de Crisma; fora dela, só leitura se já houver anotação (situação do servidor).
+      _blocoPadrinho(dados, e) +
       '<h6 class="text-muted">Saúde e emergência</h6><div class="row g-2 mb-3">' +
       e('ALERGIAS', 'Alergias', 'col-md-4') + e('MEDICAMENTOS', 'Medicamentos de uso contínuo', 'col-md-4') + e('RESTRICOES', 'Restrições', 'col-md-4') +
       e('OBSERVACOES_MEDICAS', 'Outras observações médicas', 'col-12', 'area') + // Auditoria catequética — Etapa 5
       e('CONTATO_EMERGENCIAL', 'Contato emergencial', 'col-md-4') + e('TELEFONE_EMERGENCIAL', 'Telefone emergencial', 'col-md-4') + e('PARENTESCO_EMERGENCIAL', 'Parentesco', 'col-md-4') + '</div>' +
       '<h6 class="text-muted">Observações</h6>' + e('OBSERVACOES', 'Observações', 'col-12', 'area').replace('<label class="form-label" for="dc-OBSERVACOES">Observações</label>', '<label class="visually-hidden" for="dc-OBSERVACOES">Observações</label>') +
       '<p class="text-muted small mt-1 mb-0">Informações de saúde vão em "Outras observações médicas", acima.</p>';
+  }
+
+  /** 04/11/2026: bloco do padrinho conforme a situação vinda do servidor (EDITAVEL | LEITURA | OCULTO). */
+  function _blocoPadrinho(dados, e) {
+    var situacao = (dados.somenteLeitura && dados.somenteLeitura.PADRINHO_CRISMA) || 'OCULTO';
+    if (situacao === 'OCULTO') return '';
+    var titulo = '<h6 class="text-muted">Padrinho ou madrinha de Crisma (previsto)</h6><div class="row g-2 mb-3">';
+    if (situacao === 'LEITURA') {
+      var v = dados.valores, data = v.PADRINHO_CRISMA_DATA ? String(v.PADRINHO_CRISMA_DATA).split('-').reverse().join('/') : '';
+      return titulo + _campoLeitura('Nome do padrinho ou madrinha', v.PADRINHO_CRISMA_NOME, 'col-md-6') + _campoLeitura('Telefone', v.PADRINHO_CRISMA_TELEFONE, 'col-md-6') +
+        _campoLeitura('Data da Crisma do padrinho ou madrinha', data, 'col-md-6') + _campoLeitura('Paróquia onde foi crismado(a)', v.PADRINHO_CRISMA_PAROQUIA, 'col-md-6') +
+        '<div class="col-12"><p class="text-muted small mb-0">Anotado durante a preparação para a Crisma. Só leitura: o catequizando não está numa etapa de Crisma.</p></div></div>';
+    }
+    return titulo +
+      e('PADRINHO_CRISMA_NOME', 'Nome do padrinho ou madrinha', 'col-md-6') + e('PADRINHO_CRISMA_TELEFONE', 'Telefone', 'col-md-6') +
+      e('PADRINHO_CRISMA_DATA', 'Data da Crisma do padrinho ou madrinha', 'col-md-6', 'data') + e('PADRINHO_CRISMA_PAROQUIA', 'Paróquia onde foi crismado(a)', 'col-md-6') +
+      '<div class="col-12"><p class="text-muted small mb-0">Anotação da preparação. Não marca a Crisma como recebida.</p></div></div>';
   }
 
   function _lerFormulario() {
